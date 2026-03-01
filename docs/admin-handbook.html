@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administrator Handbook — Forge Platform Docs</title>
+  <meta name="description" content="Administrator Handbook documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/admin-handbook.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="forge-platform-administrator-handbook">Forge Platform — Administrator Handbook</h1>
+<p>Operational guide for installing, running, and maintaining a Forge Platform deployment. Each section is step-by-step with concrete example values you can copy. Click any item in the table of contents to jump straight to it.</p>
+<p>For day-to-day UI usage, see the companion <a href="HANDBOOK.md">User Handbook</a>.</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<h3 id="install-first-boot">Install &amp; First Boot</h3>
+<ul>
+<li><a href="#prerequisites">Prerequisites</a></li>
+<li><a href="#installation-docker-compose">Installation (Docker Compose)</a></li>
+<li><a href="#first-time-setup">First-Time Setup</a></li>
+<li><a href="#tls--ssl-setup">TLS / SSL Setup</a></li>
+<li><a href="#initial-admin-hardening">Initial Admin Hardening</a></li>
+</ul>
+<h3 id="day-2-operations">Day-2 Operations</h3>
+<ul>
+<li><a href="#starting-and-stopping-the-stack">Starting and Stopping the Stack</a></li>
+<li><a href="#inspecting-logs">Inspecting Logs</a></li>
+<li><a href="#health-checks">Health Checks</a></li>
+<li><a href="#backup">Backup</a></li>
+<li><a href="#restore">Restore</a></li>
+<li><a href="#upgrade">Upgrade</a></li>
+<li><a href="#rolling-back">Rolling Back</a></li>
+</ul>
+<h3 id="scaling-topology">Scaling &amp; Topology</h3>
+<ul>
+<li><a href="#adding-an-execution-node">Adding an Execution Node</a></li>
+<li><a href="#adding-a-hop-node">Adding a Hop Node</a></li>
+<li><a href="#tuning-capacity">Tuning Capacity</a></li>
+<li><a href="#switching-to-kubernetes">Switching to Kubernetes</a></li>
+</ul>
+<h3 id="observability">Observability</h3>
+<ul>
+<li><a href="#enabling-opentelemetry">Enabling OpenTelemetry</a></li>
+<li><a href="#grafana-dashboards">Grafana Dashboards</a></li>
+<li><a href="#audit-log-export">Audit Log Export</a></li>
+</ul>
+<h3 id="security">Security</h3>
+<ul>
+<li><a href="#rotating-secrets">Rotating Secrets</a></li>
+<li><a href="#user--sso-setup">User &amp; SSO Setup</a></li>
+<li><a href="#firewall--network-hardening">Firewall &amp; Network Hardening</a></li>
+<li><a href="#security-updates">Security Updates</a></li>
+</ul>
+<h3 id="troubleshooting">Troubleshooting</h3>
+<ul>
+<li><a href="#stack-wont-come-up">Stack Won't Come Up</a></li>
+<li><a href="#database-connection-errors">Database Connection Errors</a></li>
+<li><a href="#jobs-stuck-in-pending">Jobs Stuck in Pending</a></li>
+<li><a href="#receptor--mesh-issues">Receptor / Mesh Issues</a></li>
+<li><a href="#frontend-returns-502">Frontend Returns 502</a></li>
+<li><a href="#disk-filling-up">Disk Filling Up</a></li>
+<li><a href="#reset-admin-password">Reset Admin Password</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="#service-map">Service Map</a></li>
+<li><a href="#environment-variables">Environment Variables</a></li>
+<li><a href="#file-layout">File Layout</a></li>
+</ul>
+<hr />
+<h1 id="install-first-boot_1">INSTALL &amp; FIRST BOOT</h1>
+<h2 id="prerequisites">Prerequisites</h2>
+<p>Hardware and software needed before installing Forge.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Provision a host (VM or bare metal) with:</li>
+<li>4 vCPU, 8 GB RAM, 50 GB disk (minimum)</li>
+<li>8 vCPU, 16 GB RAM, 200 GB disk (recommended for production)</li>
+<li>Install <strong>Docker</strong> ≥ 24 and <strong>Docker Compose plugin</strong> ≥ 2.20.</li>
+<li>Open inbound ports <strong>80</strong> and <strong>443</strong> in your firewall.</li>
+<li>Register a DNS A record pointing at the host (e.g. <code>forge.example.com</code>).</li>
+<li>Make sure the system clock is in sync with NTP.</li>
+</ol>
+<p><strong>Example — Ubuntu 24.04 fresh box</strong></p>
+<div class="codehilite"><pre><span></span><code>sudo<span class="w"> </span>apt<span class="w"> </span>update
+sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>docker.io<span class="w"> </span>docker-compose-plugin
+sudo<span class="w"> </span>systemctl<span class="w"> </span><span class="nb">enable</span><span class="w"> </span>--now<span class="w"> </span>docker
+sudo<span class="w"> </span>usermod<span class="w"> </span>-aG<span class="w"> </span>docker<span class="w"> </span><span class="nv">$USER</span>
+newgrp<span class="w"> </span>docker
+</code></pre></div>
+
+<hr />
+<h2 id="installation-docker-compose">Installation (Docker Compose)</h2>
+<p>The standard installation uses the compose file shipped in this repo.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Clone or copy <code>forge-deploy</code> to the target host:
+   <code>bash
+   git clone https://github.com/forgeplatform/forge-deploy.git /opt/forge
+   cd /opt/forge</code></li>
+<li>Copy the example env file and edit it:
+   <code>bash
+   cp .env.example .env
+   $EDITOR .env</code></li>
+<li>Fill in the <strong>required</strong> variables (see <a href="#environment-variables">Environment Variables</a>).</li>
+<li>Pull the images:
+   <code>bash
+   docker compose pull</code></li>
+<li>Bring the stack up:
+   <code>bash
+   docker compose up -d</code></li>
+<li>Tail the init container until it finishes:
+   <code>bash
+   docker compose logs -f forge-init</code></li>
+<li>When you see <code>==&gt; Init complete.</code> you can hit <code>https://&lt;your-host&gt;</code> in a browser.</li>
+</ol>
+<p><strong>Example <code>.env</code> for first install</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="na">POSTGRES_PASSWORD</span><span class="o">=</span><span class="s">Sup3rS3cret-pg</span>
+<span class="na">FORGE_SECRET_KEY</span><span class="o">=</span><span class="s">$(openssl rand -hex 25)</span>
+<span class="na">FORGE_BROADCAST_WEBSOCKET_SECRET</span><span class="o">=</span><span class="s">$(openssl rand -hex 25)</span>
+<span class="na">FORGE_ADMIN_PASSWORD</span><span class="o">=</span><span class="s">ChangeMe!Now</span>
+<span class="na">FORGE_CSRF_TRUSTED_ORIGINS</span><span class="o">=</span><span class="s">https://forge.example.com</span>
+<span class="na">FORGE_ALLOWED_HOSTS</span><span class="o">=</span><span class="s">forge.example.com</span>
+<span class="na">FORGE_TAG</span><span class="o">=</span><span class="s">2026.04.0</span>
+</code></pre></div>
+
+<blockquote>
+<p><strong>Note:</strong> generate the two random secrets with <code>openssl rand -hex 25</code> before pasting them into the file — do not leave the literal <code>$()</code> in <code>.env</code>.</p>
+</blockquote>
+<hr />
+<h2 id="first-time-setup">First-Time Setup</h2>
+<p>What to do the first time you log in.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Open <code>https://forge.example.com</code>.</li>
+<li>Log in as <code>admin</code> / your <code>FORGE_ADMIN_PASSWORD</code>.</li>
+<li>Click <strong>Settings → License</strong> and upload the license file (if applicable).</li>
+<li>Click <strong>Settings → System</strong> → set <strong>Base URL</strong> to <code>https://forge.example.com</code>.</li>
+<li>Click <strong>Organizations → Add</strong> and create your first organization (e.g. <code>Platform</code>).</li>
+<li>Click <strong>Users → Add</strong> and create at least one named admin (do not keep using the default <code>admin</code>).</li>
+<li>Log out, log back in as the new admin, and disable the default admin from <strong>Users → admin → Disable</strong>.</li>
+</ol>
+<p><strong>Example values</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Base URL</td>
+<td><code>https://forge.example.com</code></td>
+</tr>
+<tr>
+<td>First org</td>
+<td><code>Platform</code></td>
+</tr>
+<tr>
+<td>Named admin</td>
+<td><code>krstan</code> / strong password</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="tls-ssl-setup">TLS / SSL Setup</h2>
+<p>Forge ships with a self-signed cert. Replace it with a real one before exposing the box.</p>
+<p><strong>Step by step — Let's Encrypt with certbot</strong></p>
+<ol>
+<li>Stop the nginx service so port 80 is free for the ACME challenge:
+   <code>bash
+   docker compose stop nginx</code></li>
+<li>Run certbot in standalone mode:
+   <code>bash
+   sudo certbot certonly --standalone -d forge.example.com</code></li>
+<li>Copy the new cert/key into the nginx mount point:
+   <code>bash
+   sudo cp /etc/letsencrypt/live/forge.example.com/fullchain.pem nginx/ssl/forge.crt
+   sudo cp /etc/letsencrypt/live/forge.example.com/privkey.pem   nginx/ssl/forge.key</code></li>
+<li>Restart nginx:
+   <code>bash
+   docker compose up -d nginx</code></li>
+<li>Verify:
+   <code>bash
+   curl -I https://forge.example.com</code></li>
+</ol>
+<p><strong>Example renewal cron</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="mf">0</span><span class="w"> </span><span class="mf">3</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mf">1</span><span class="w"> </span><span class="n">certbot</span><span class="w"> </span><span class="n">renew</span><span class="w"> </span><span class="o">--</span><span class="n">pre</span><span class="o">-</span><span class="n">hook</span><span class="w"> </span><span class="s">&quot;docker compose -f /opt/forge/docker-compose.yml stop nginx&quot;</span><span class="w"> </span><span class="o">--</span><span class="nb">pos</span><span class="n">t</span><span class="o">-</span><span class="n">hook</span><span class="w"> </span><span class="s">&quot;cp /etc/letsencrypt/live/forge.example.com/fullchain.pem /opt/forge/nginx/ssl/forge.crt &amp;&amp; cp /etc/letsencrypt/live/forge.example.com/privkey.pem /opt/forge/nginx/ssl/forge.key &amp;&amp; docker compose -f /opt/forge/docker-compose.yml up -d nginx&quot;</span>
+</code></pre></div>
+
+<hr />
+<h2 id="initial-admin-hardening">Initial Admin Hardening</h2>
+<p>Things every new install should do on day one.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Change <code>FORGE_ADMIN_PASSWORD</code> in <code>.env</code> to a strong value, then <code>docker compose up -d forge-init</code> to apply.</li>
+<li>In <strong>Settings → Authentication</strong>, disable any auth backend you don't use (LDAP, SAML, OIDC).</li>
+<li>In <strong>Settings → System</strong>, enable <strong>Session Cookie Secure</strong> and set <strong>Session Timeout</strong> to <code>3600</code>.</li>
+<li>Create at least two named admin users so no single account is the only way in.</li>
+<li>Configure a <a href="#backup">backup cron</a> before importing real data.</li>
+<li>Configure at least one <a href="HANDBOOK.md#notifications">Notification</a> channel for failure alerts.</li>
+</ol>
+<hr />
+<h1 id="day-2-operations_1">DAY-2 OPERATIONS</h1>
+<h2 id="starting-and-stopping-the-stack">Starting and Stopping the Stack</h2>
+<p><strong>Step by step</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Start everything</span>
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+
+<span class="c1"># Stop everything (no data loss)</span>
+docker<span class="w"> </span>compose<span class="w"> </span>stop
+
+<span class="c1"># Stop and remove containers (data in volumes survives)</span>
+docker<span class="w"> </span>compose<span class="w"> </span>down
+
+<span class="c1"># Restart a single service</span>
+docker<span class="w"> </span>compose<span class="w"> </span>restart<span class="w"> </span>forge-web
+</code></pre></div>
+
+<p><strong>Example — restart only the task workers after editing settings</strong></p>
+<div class="codehilite"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>restart<span class="w"> </span>forge-task
+</code></pre></div>
+
+<hr />
+<h2 id="inspecting-logs">Inspecting Logs</h2>
+<p><strong>Step by step</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># All services, follow</span>
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>-f
+
+<span class="c1"># One service</span>
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>forge-web
+
+<span class="c1"># Last 200 lines, no follow</span>
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>--tail<span class="o">=</span><span class="m">200</span><span class="w"> </span>forge-task
+
+<span class="c1"># Filter by timestamp</span>
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>--since<span class="o">=</span>1h<span class="w"> </span>forge-web
+</code></pre></div>
+
+<p><strong>Example — find the most recent error in the web service</strong></p>
+<div class="codehilite"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>--since<span class="o">=</span>24h<span class="w"> </span>forge-web<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-i<span class="w"> </span>error<span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-20
+</code></pre></div>
+
+<hr />
+<h2 id="health-checks">Health Checks</h2>
+<p>The stack ships with two healthcheck scripts you can run manually or from monitoring.</p>
+<p><strong>Step by step</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Web service</span>
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-web<span class="w"> </span>/scripts/healthcheck-web.sh
+
+<span class="c1"># Task service</span>
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-task<span class="w"> </span>/scripts/healthcheck-task.sh
+</code></pre></div>
+
+<p><strong>Example — uptime check from outside</strong></p>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-fsS<span class="w"> </span>https://forge.example.com/api/v2/ping/<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span>OK
+</code></pre></div>
+
+<hr />
+<h2 id="backup">Backup</h2>
+<p>Daily backups are mandatory. Forge ships <code>scripts/backup.sh</code> which dumps Postgres and rotates old archives.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Run a one-off backup to verify it works:
+   <code>bash
+   docker compose exec postgres /scripts/backup.sh</code></li>
+<li>Inspect the result:
+   <code>bash
+   ls -lh /var/lib/awx/backups/</code></li>
+<li>Schedule a nightly cron on the host:
+   <code>cron
+   0 2 * * * docker compose -f /opt/forge/docker-compose.yml exec -T postgres /scripts/backup.sh &gt;&gt; /var/log/forge-backup.log 2&gt;&amp;1</code></li>
+<li>Copy the backups off-host (S3, rsync, etc.):
+   <code>cron
+   30 2 * * * aws s3 sync /var/lib/awx/backups/ s3://acme-forge-backups/</code></li>
+</ol>
+<p><strong>Example output</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="o">==&gt;</span><span class="w"> </span><span class="n">Starting</span><span class="w"> </span><span class="n">backup</span><span class="o">...</span>
+<span class="o">==&gt;</span><span class="w"> </span><span class="n">Backup</span><span class="w"> </span><span class="n">saved</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">awx</span><span class="o">/</span><span class="n">backups</span><span class="o">/</span><span class="n">forge_backup_20260411_020000</span><span class="o">.</span><span class="n">sql</span><span class="o">.</span><span class="n">gz</span>
+<span class="o">==&gt;</span><span class="w"> </span><span class="n">Removing</span><span class="w"> </span><span class="n">backups</span><span class="w"> </span><span class="n">older</span><span class="w"> </span><span class="n">than</span><span class="w"> </span><span class="mi">7</span><span class="w"> </span><span class="n">days</span><span class="o">...</span>
+<span class="o">==&gt;</span><span class="w"> </span><span class="n">Backup</span><span class="w"> </span><span class="n">complete</span><span class="o">.</span>
+</code></pre></div>
+
+<blockquote>
+<p><strong>Retention</strong> is controlled by <code>BACKUP_RETENTION_DAYS</code> (default 7). Override in <code>.env</code> if you need longer.</p>
+</blockquote>
+<hr />
+<h2 id="restore">Restore</h2>
+<p><code>scripts/restore.sh</code> reads a <code>.sql.gz</code> and pipes it back into Postgres.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li><strong>Stop</strong> the application services so nothing writes to the DB:
+   <code>bash
+   docker compose stop forge-web forge-task</code></li>
+<li>Run the restore (omit the filename to use the most recent backup):
+   <code>bash
+   docker compose exec -T postgres /scripts/restore.sh /var/lib/awx/backups/forge_backup_20260411_020000.sql.gz</code></li>
+<li>Restart the application:
+   <code>bash
+   docker compose up -d forge-web forge-task</code></li>
+<li>Verify in the UI: log in and check <strong>Activity</strong> for the expected history.</li>
+</ol>
+<p><strong>Example — restore yesterday's backup</strong></p>
+<div class="codehilite"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>stop<span class="w"> </span>forge-web<span class="w"> </span>forge-task
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-T<span class="w"> </span>postgres<span class="w"> </span>/scripts/restore.sh
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d<span class="w"> </span>forge-web<span class="w"> </span>forge-task
+</code></pre></div>
+
+<blockquote>
+<p><strong>Warning:</strong> Restore is destructive. The current database is <strong>overwritten</strong> by the dump. Always take a fresh backup <em>before</em> restoring an old one.</p>
+</blockquote>
+<hr />
+<h2 id="upgrade">Upgrade</h2>
+<p>Upgrading is a tag bump + pull + up.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Read the <a href="RELEASE_NOTES_v2026.04.0.md">release notes</a> for breaking changes.</li>
+<li>Take a backup (see <a href="#backup">Backup</a>).</li>
+<li>Edit <code>.env</code> and bump <code>FORGE_TAG</code>:
+   <code>ini
+   FORGE_TAG=2026.05.0</code></li>
+<li>Pull the new images:
+   <code>bash
+   docker compose pull</code></li>
+<li>Bring the new stack up — <code>forge-init</code> runs migrations automatically:
+   <code>bash
+   docker compose up -d</code></li>
+<li>Tail init:
+   <code>bash
+   docker compose logs -f forge-init</code></li>
+<li>Smoke-test:
+   <code>bash
+   curl -fsS https://forge.example.com/api/v2/ping/</code></li>
+<li>Watch <strong>Jobs</strong> for 10 minutes — make sure new launches work.</li>
+</ol>
+<p><strong>Example — minor version bump</strong></p>
+<div class="codehilite"><pre><span></span><code>sed<span class="w"> </span>-i<span class="w"> </span><span class="s1">&#39;s/^FORGE_TAG=.*/FORGE_TAG=2026.04.1/&#39;</span><span class="w"> </span>.env
+docker<span class="w"> </span>compose<span class="w"> </span>pull<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+
+<hr />
+<h2 id="rolling-back">Rolling Back</h2>
+<p>If an upgrade fails, roll back the tag and restore the pre-upgrade backup.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Set the previous tag in <code>.env</code>:
+   <code>ini
+   FORGE_TAG=2026.04.0</code></li>
+<li>Pull and bring up:
+   <code>bash
+   docker compose pull
+   docker compose up -d</code></li>
+<li><strong>If migrations were applied</strong> during the failed upgrade, you must also restore the pre-upgrade DB dump (see <a href="#restore">Restore</a>).</li>
+<li>Verify and notify users.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Upgraded to <code>2026.05.0</code> at 02:30, jobs started failing at 02:45 → set <code>FORGE_TAG=2026.04.0</code> → pull → up → restore <code>forge_backup_20260411_020000.sql.gz</code> → service restored at 02:55.</p>
+</blockquote>
+<hr />
+<h1 id="scaling-topology_1">SCALING &amp; TOPOLOGY</h1>
+<h2 id="adding-an-execution-node">Adding an Execution Node</h2>
+<p>Execution nodes run Ansible jobs. Add more when you exhaust capacity.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Provision a new host with Docker.</li>
+<li>On the new host, install Receptor and bring it up as an execution node, pointing at the control node:
+   <code>bash
+   docker run -d --name forge-receptor \
+     -e RECEPTOR_NODE_TYPE=execution \
+     -e RECEPTOR_PEER=tcp://control.forge.example.com:2222 \
+     registry.cloudforyour.work/forge-platform/forge-receptor:2026.04.0</code></li>
+<li>In the UI: <strong>Admin → Instances → Add</strong> and register the new node:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Hostname</td>
+<td><code>worker-eu-03</code></td>
+</tr>
+<tr>
+<td>Node Type</td>
+<td><code>execution</code></td>
+</tr>
+<tr>
+<td>Instance Group</td>
+<td><code>eu-west-pool</code></td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li>Wait until the node shows <strong>Ready</strong> in <strong>Topology</strong>.</li>
+<li>Existing templates pinned to <code>eu-west-pool</code> will start scheduling onto it.</li>
+</ol>
+<hr />
+<h2 id="adding-a-hop-node">Adding a Hop Node</h2>
+<p>Hop nodes relay traffic across network boundaries (e.g. DMZ → internal).</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Provision the hop host inside the boundary.</li>
+<li>Run a Receptor container with <code>RECEPTOR_NODE_TYPE=hop</code>:
+   <code>bash
+   docker run -d --name forge-receptor \
+     -e RECEPTOR_NODE_TYPE=hop \
+     -e RECEPTOR_PEER=tcp://control.forge.example.com:2222 \
+     registry.cloudforyour.work/forge-platform/forge-receptor:2026.04.0</code></li>
+<li>In the UI: <strong>Admin → Instances → Add</strong> with <strong>Node Type = hop</strong>.</li>
+<li>From any execution node behind the hop, set its peer to the hop instead of the control node.</li>
+<li>Confirm in <strong>Topology</strong> that the hop appears between the control and the workers.</li>
+</ol>
+<hr />
+<h2 id="tuning-capacity">Tuning Capacity</h2>
+<p><strong>Step by step</strong></p>
+<ol>
+<li><strong>Settings → Jobs</strong>, edit:</li>
+<li><strong>Max Concurrent Jobs</strong> — global ceiling</li>
+<li><strong>Max Forks</strong> — Ansible forks per job</li>
+<li>Per instance: <strong>Admin → Instances → <node> → Capacity Adjustment</strong> slider (0.0–1.0).</li>
+<li>Save. Changes take effect within 30 seconds.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>16 vCPU control node → set capacity to <code>1.0</code> (use all). 4 vCPU shared dev box → set to <code>0.25</code>.</p>
+</blockquote>
+<hr />
+<h2 id="switching-to-kubernetes">Switching to Kubernetes</h2>
+<p>The <code>k8s/</code> folder contains baseline manifests if you outgrow Docker Compose.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Read <a href="../k8s/"><code>k8s/</code></a> — it includes Deployments, Services, ConfigMap, Secret, Ingress.</li>
+<li>Create a namespace:
+   <code>bash
+   kubectl create namespace forge</code></li>
+<li>Create the secrets (translate your <code>.env</code>):
+   <code>bash
+   kubectl -n forge create secret generic forge-env --from-env-file=.env</code></li>
+<li>Apply the manifests:
+   <code>bash
+   kubectl -n forge apply -f k8s/</code></li>
+<li>Watch the rollout:
+   <code>bash
+   kubectl -n forge get pods -w</code></li>
+</ol>
+<blockquote>
+<p>Migration from compose to k8s is a one-shot: dump Postgres, import into the k8s-managed Postgres (or external RDS).</p>
+</blockquote>
+<hr />
+<h1 id="observability_1">OBSERVABILITY</h1>
+<h2 id="enabling-opentelemetry">Enabling OpenTelemetry</h2>
+<p>The stack ships with <code>forge-otel-collector</code>. You only need to point it at your backend.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Edit <code>otel/collector-config.yaml</code>.</li>
+<li>Set the exporter endpoint:
+   <code>yaml
+   exporters:
+     otlphttp:
+       endpoint: https://otel.example.com
+       headers:
+         authorization: "Bearer YOUR_TOKEN"</code></li>
+<li>Restart the collector:
+   <code>bash
+   docker compose restart forge-otel-collector</code></li>
+<li>In <strong>Settings → Observability</strong>, set:</li>
+<li><strong>OTLP Endpoint</strong> = <code>http://forge-otel-collector:4318</code></li>
+<li><strong>Sampling rate</strong> = <code>0.1</code> (10%)</li>
+<li>Save. Within a minute, traces appear in your APM tool.</li>
+</ol>
+<hr />
+<h2 id="grafana-dashboards">Grafana Dashboards</h2>
+<p><code>grafana/</code> contains pre-built dashboards JSONs.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Open Grafana → <strong>Dashboards → Import</strong>.</li>
+<li>Upload <code>grafana/forge-overview.json</code>.</li>
+<li>Pick your Prometheus datasource.</li>
+<li>Save. The dashboard shows job throughput, web/task latency, queue depth.</li>
+</ol>
+<hr />
+<h2 id="audit-log-export">Audit Log Export</h2>
+<p>For SOC 2 / ISO 27001 evidence collection.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Open <strong>Audit Log</strong> in the UI.</li>
+<li>Filter by date range (e.g. last quarter).</li>
+<li>Click <strong>Export → CSV</strong>.</li>
+<li>Hash and store the CSV alongside your evidence pack:
+   <code>bash
+   sha256sum audit-2026Q1.csv &gt; audit-2026Q1.csv.sha256</code></li>
+</ol>
+<hr />
+<h1 id="security_1">SECURITY</h1>
+<h2 id="rotating-secrets">Rotating Secrets</h2>
+<p>Secrets to rotate periodically: <code>FORGE_SECRET_KEY</code>, <code>POSTGRES_PASSWORD</code>, <code>FORGE_ADMIN_PASSWORD</code>, <code>FORGE_BROADCAST_WEBSOCKET_SECRET</code>.</p>
+<p><strong>Step by step — rotate <code>FORGE_SECRET_KEY</code></strong></p>
+<ol>
+<li><strong>Take a backup first.</strong></li>
+<li>Generate a new key:
+   <code>bash
+   openssl rand -hex 25</code></li>
+<li>Edit <code>.env</code>, replace <code>FORGE_SECRET_KEY=...</code>.</li>
+<li>Restart web + task:
+   <code>bash
+   docker compose up -d forge-web forge-task</code></li>
+<li><strong>All sessions are invalidated</strong> — users must re-login. Encrypted credentials in the DB are unaffected (they use a separate Fernet key).</li>
+</ol>
+<blockquote>
+<p><strong>Never</strong> rotate the database encryption key (used for credential storage) without first re-encrypting all credentials. That procedure is a separate runbook.</p>
+</blockquote>
+<hr />
+<h2 id="user-sso-setup">User &amp; SSO Setup</h2>
+<p><strong>Step by step — enable OIDC</strong></p>
+<ol>
+<li>Open <strong>Settings → Authentication → OIDC</strong>.</li>
+<li>Fill in:</li>
+<li><strong>Provider URL</strong> — <code>https://login.example.com</code></li>
+<li><strong>Client ID</strong> — <code>forge-prod</code></li>
+<li><strong>Client Secret</strong> — <em>(from IdP)</em></li>
+<li><strong>Redirect URI</strong> — <code>https://forge.example.com/sso/complete/oidc/</code></li>
+<li>Save → click <strong>Test</strong> to verify discovery.</li>
+<li>Test login from a private browser window.</li>
+<li>Map IdP groups to Forge teams under <strong>Settings → Authentication → Group Mapping</strong>.</li>
+</ol>
+<hr />
+<h2 id="firewall-network-hardening">Firewall &amp; Network Hardening</h2>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Allow inbound only on <strong>443</strong> (and optionally 80 for HTTP→HTTPS redirect).</li>
+<li>Restrict SSH to your bastion / admin range.</li>
+<li>Block Postgres (5432), Redis (6379), Receptor (2222) from the public internet — they should only be reachable from inside the Docker network.</li>
+<li>If running on cloud, also configure security groups, not just OS firewall.</li>
+</ol>
+<p><strong>Example — ufw on Ubuntu</strong></p>
+<div class="codehilite"><pre><span></span><code>sudo<span class="w"> </span>ufw<span class="w"> </span>default<span class="w"> </span>deny<span class="w"> </span>incoming
+sudo<span class="w"> </span>ufw<span class="w"> </span>allow<span class="w"> </span><span class="m">80</span>/tcp
+sudo<span class="w"> </span>ufw<span class="w"> </span>allow<span class="w"> </span><span class="m">443</span>/tcp
+sudo<span class="w"> </span>ufw<span class="w"> </span>allow<span class="w"> </span>from<span class="w"> </span><span class="m">10</span>.0.0.0/24<span class="w"> </span>to<span class="w"> </span>any<span class="w"> </span>port<span class="w"> </span><span class="m">22</span>
+sudo<span class="w"> </span>ufw<span class="w"> </span><span class="nb">enable</span>
+</code></pre></div>
+
+<hr />
+<h2 id="security-updates">Security Updates</h2>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Subscribe to the Forge release announcement channel.</li>
+<li>Run <code>docker compose pull</code> weekly to pick up base-image patches when you bump tag.</li>
+<li>Patch the host OS monthly (<code>unattended-upgrades</code> on Debian/Ubuntu).</li>
+<li>Run scheduled image scans:
+   <code>bash
+   trivy image registry.cloudforyour.work/forge-platform/forge-backend:2026.04.0</code></li>
+</ol>
+<hr />
+<h1 id="troubleshooting_1">TROUBLESHOOTING</h1>
+<h2 id="stack-wont-come-up">Stack Won't Come Up</h2>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Check <code>docker compose ps</code> — which service is unhealthy?</li>
+<li><code>docker compose logs &lt;service&gt;</code> for the failing one.</li>
+<li>Common causes:</li>
+<li>Missing or wrong values in <code>.env</code> → look for <code>KeyError</code> / <code>ImproperlyConfigured</code>.</li>
+<li>Port 80/443 already in use → <code>sudo lsof -i :443</code>.</li>
+<li>Volume permissions → <code>sudo chown -R 1000:1000 /var/lib/awx</code>.</li>
+<li>Fix and <code>docker compose up -d</code> again.</li>
+</ol>
+<hr />
+<h2 id="database-connection-errors">Database Connection Errors</h2>
+<p>Symptom: web service logs show <code>could not connect to server: Connection refused</code>.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Is postgres running? <code>docker compose ps postgres</code></li>
+<li>Logs: <code>docker compose logs --tail=100 postgres</code></li>
+<li>Can the web container reach it?
+   <code>bash
+   docker compose exec forge-web pg_isready -h postgres -U forge</code></li>
+<li>If postgres is healthy but web cannot connect → check <code>POSTGRES_PASSWORD</code> matches in <code>.env</code> and the DB volume.</li>
+<li>If postgres won't start → look for <code>PANIC</code> lines (disk full, corrupt WAL).</li>
+</ol>
+<hr />
+<h2 id="jobs-stuck-in-pending">Jobs Stuck in Pending</h2>
+<p>Symptom: jobs sit in <em>Pending</em> and never start.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Check capacity: <strong>Admin → Instances</strong> → is total used == total capacity?</li>
+<li>Check task workers: <code>docker compose ps forge-task</code> — running?</li>
+<li>Check Redis: <code>docker compose exec redis redis-cli ping</code> should return <code>PONG</code>.</li>
+<li>Check Receptor: <code>docker compose exec forge-task receptorctl status</code>.</li>
+<li>As a last resort, restart the task service:
+   <code>bash
+   docker compose restart forge-task</code></li>
+</ol>
+<hr />
+<h2 id="receptor-mesh-issues">Receptor / Mesh Issues</h2>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Open <strong>Topology</strong> — any red links?</li>
+<li>From the control node:
+   <code>bash
+   docker compose exec forge-task receptorctl status</code></li>
+<li>From a worker:
+   <code>bash
+   docker exec forge-receptor receptorctl status</code></li>
+<li>Verify TCP reachability between nodes on <strong>2222</strong>.</li>
+<li>Restart the affected receptor container.</li>
+</ol>
+<hr />
+<h2 id="frontend-returns-502">Frontend Returns 502</h2>
+<p>Symptom: browser shows nginx 502 Bad Gateway.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li><code>docker compose ps</code> — is <code>forge-frontend</code> healthy?</li>
+<li><code>docker compose logs --tail=50 forge-frontend</code></li>
+<li><code>docker compose logs --tail=50 nginx</code></li>
+<li>Common cause: frontend container OOM-killed → bump memory in compose.</li>
+<li>Restart: <code>docker compose restart forge-frontend nginx</code>.</li>
+</ol>
+<hr />
+<h2 id="disk-filling-up">Disk Filling Up</h2>
+<p><strong>Step by step</strong></p>
+<ol>
+<li><code>df -h</code> — which mount?</li>
+<li>If <code>/var/lib/docker</code> → prune unused images:
+   <code>bash
+   docker image prune -af --filter "until=168h"</code></li>
+<li>If the backup directory → lower <code>BACKUP_RETENTION_DAYS</code> and rerun backup.</li>
+<li>If Postgres data dir → check for runaway audit log growth, vacuum:
+   <code>bash
+   docker compose exec postgres psql -U forge -d forge -c "VACUUM FULL VERBOSE;"</code></li>
+</ol>
+<hr />
+<h2 id="reset-admin-password">Reset Admin Password</h2>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Exec into the web container:
+   <code>bash
+   docker compose exec forge-web bash</code></li>
+<li>Run the management command:
+   <code>bash
+   awx-manage changepassword admin</code></li>
+<li>Enter the new password twice.</li>
+<li>Log in via the UI.</li>
+</ol>
+<blockquote>
+<p>If <code>admin</code> was disabled and you have no other admin user:
+<code>bash
+docker compose exec forge-web awx-manage createsuperuser</code></p>
+</blockquote>
+<hr />
+<h1 id="reference_1">REFERENCE</h1>
+<h2 id="service-map">Service Map</h2>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Image</th>
+<th>Port (internal)</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>postgres</code></td>
+<td><code>postgres:15</code></td>
+<td>5432</td>
+<td>Application database</td>
+</tr>
+<tr>
+<td><code>redis</code></td>
+<td><code>redis:7</code></td>
+<td>6379</td>
+<td>Cache + Celery broker</td>
+</tr>
+<tr>
+<td><code>forge-init</code></td>
+<td><code>forge-backend</code></td>
+<td>—</td>
+<td>Migrations + initial setup, exits on success</td>
+</tr>
+<tr>
+<td><code>forge-web</code></td>
+<td><code>forge-backend</code></td>
+<td>8050 (uWSGI), 8051 (Daphne)</td>
+<td>REST API + WebSocket</td>
+</tr>
+<tr>
+<td><code>forge-task</code></td>
+<td><code>forge-backend</code></td>
+<td>—</td>
+<td>Celery workers + dispatcher + ws relay</td>
+</tr>
+<tr>
+<td><code>forge-frontend</code></td>
+<td><code>forge-frontend</code></td>
+<td>80</td>
+<td>Static React UI</td>
+</tr>
+<tr>
+<td><code>forge-opa</code></td>
+<td><code>openpolicyagent/opa</code></td>
+<td>8181</td>
+<td>Policy-as-Code sidecar</td>
+</tr>
+<tr>
+<td><code>forge-otel-collector</code></td>
+<td><code>otel/collector</code></td>
+<td>4317/4318</td>
+<td>OpenTelemetry pipeline</td>
+</tr>
+<tr>
+<td><code>nginx</code></td>
+<td><code>nginx</code></td>
+<td>80 / 443</td>
+<td>TLS terminator + edge router</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="environment-variables">Environment Variables</h2>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Required</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POSTGRES_PASSWORD</code></td>
+<td>yes</td>
+<td>—</td>
+<td>DB password</td>
+</tr>
+<tr>
+<td><code>POSTGRES_USER</code></td>
+<td>no</td>
+<td><code>forge</code></td>
+<td>DB user</td>
+</tr>
+<tr>
+<td><code>POSTGRES_DB</code></td>
+<td>no</td>
+<td><code>forge</code></td>
+<td>DB name</td>
+</tr>
+<tr>
+<td><code>FORGE_SECRET_KEY</code></td>
+<td>yes</td>
+<td>—</td>
+<td>Django <code>SECRET_KEY</code> (50+ chars)</td>
+</tr>
+<tr>
+<td><code>FORGE_BROADCAST_WEBSOCKET_SECRET</code></td>
+<td>yes</td>
+<td>—</td>
+<td>WS broadcast secret</td>
+</tr>
+<tr>
+<td><code>FORGE_ADMIN_USER</code></td>
+<td>no</td>
+<td><code>admin</code></td>
+<td>Bootstrap admin username</td>
+</tr>
+<tr>
+<td><code>FORGE_ADMIN_PASSWORD</code></td>
+<td>yes</td>
+<td>—</td>
+<td>Bootstrap admin password</td>
+</tr>
+<tr>
+<td><code>FORGE_ADMIN_EMAIL</code></td>
+<td>no</td>
+<td><code>admin@example.com</code></td>
+<td>Bootstrap admin email</td>
+</tr>
+<tr>
+<td><code>FORGE_CSRF_TRUSTED_ORIGINS</code></td>
+<td>yes</td>
+<td>—</td>
+<td>Comma-separated <code>https://...</code> origins</td>
+</tr>
+<tr>
+<td><code>FORGE_ALLOWED_HOSTS</code></td>
+<td>no</td>
+<td><code>*</code></td>
+<td>Django ALLOWED_HOSTS</td>
+</tr>
+<tr>
+<td><code>FORGE_NODE_NAME</code></td>
+<td>no</td>
+<td><code>forge-node</code></td>
+<td>This node's name in mesh</td>
+</tr>
+<tr>
+<td><code>FORGE_NODE_TYPE</code></td>
+<td>no</td>
+<td><code>hybrid</code></td>
+<td><code>control</code> / <code>execution</code> / <code>hybrid</code></td>
+</tr>
+<tr>
+<td><code>FORGE_BACKEND_IMAGE</code></td>
+<td>no</td>
+<td><code>registry.cloudforyour.work/forge-platform/forge-backend</code></td>
+<td>Backend image</td>
+</tr>
+<tr>
+<td><code>FORGE_FRONTEND_IMAGE</code></td>
+<td>no</td>
+<td><code>registry.cloudforyour.work/forge-platform/forge-frontend</code></td>
+<td>Frontend image</td>
+</tr>
+<tr>
+<td><code>FORGE_TAG</code></td>
+<td>no</td>
+<td><code>latest</code></td>
+<td>Image tag (use a real version, not <code>latest</code>)</td>
+</tr>
+<tr>
+<td><code>BACKUP_RETENTION_DAYS</code></td>
+<td>no</td>
+<td><code>7</code></td>
+<td>Days of backups to keep</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="file-layout">File Layout</h2>
+<div class="codehilite"><pre><span></span><code><span class="o">/</span><span class="n">opt</span><span class="o">/</span><span class="n">forge</span><span class="o">/</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span><span class="o">.</span><span class="n">yml</span><span class="w">      </span><span class="c1"># primary stack definition</span>
+<span class="err">├──</span><span class="w"> </span><span class="o">.</span><span class="n">env</span><span class="w">                    </span><span class="c1"># local secrets — never commit</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">nginx</span><span class="o">/</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">nginx</span><span class="o">.</span><span class="n">conf</span>
+<span class="err">│</span><span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="n">ssl</span><span class="o">/</span>
+<span class="err">│</span><span class="w">       </span><span class="err">├──</span><span class="w"> </span><span class="n">forge</span><span class="o">.</span><span class="n">crt</span>
+<span class="err">│</span><span class="w">       </span><span class="err">└──</span><span class="w"> </span><span class="n">forge</span><span class="o">.</span><span class="n">key</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">settings</span><span class="o">/</span><span class="w">               </span><span class="c1"># Django settings overrides mounted into forge-web/task</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">otel</span><span class="o">/</span>
+<span class="err">│</span><span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="n">collector</span><span class="o">-</span><span class="n">config</span><span class="o">.</span><span class="n">yaml</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">grafana</span><span class="o">/</span>
+<span class="err">│</span><span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="o">*.</span><span class="n">json</span><span class="w">              </span><span class="c1"># importable dashboards</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">scripts</span><span class="o">/</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">backup</span><span class="o">.</span><span class="n">sh</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">restore</span><span class="o">.</span><span class="n">sh</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">healthcheck</span><span class="o">-</span><span class="n">web</span><span class="o">.</span><span class="n">sh</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">healthcheck</span><span class="o">-</span><span class="n">task</span><span class="o">.</span><span class="n">sh</span>
+<span class="err">│</span><span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="n">init</span><span class="o">.</span><span class="n">sh</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">k8s</span><span class="o">/</span><span class="w">                    </span><span class="c1"># k8s manifests (alternative to compose)</span>
+<span class="err">└──</span><span class="w"> </span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">awx</span><span class="o">/</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="n">projects</span><span class="o">/</span><span class="w">           </span><span class="c1"># synced project checkouts</span>
+<span class="w">    </span><span class="err">├──</span><span class="w"> </span><span class="n">public</span><span class="o">/</span><span class="w">             </span><span class="c1"># static web assets</span>
+<span class="w">    </span><span class="err">└──</span><span class="w"> </span><span class="n">backups</span><span class="o">/</span><span class="w">            </span><span class="c1"># nightly DB dumps</span>
+</code></pre></div>
+
+<hr />
+<p><em>End of administrator handbook.</em></p>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

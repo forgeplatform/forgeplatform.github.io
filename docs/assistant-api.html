@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Assistant API — Forge Platform Docs</title>
+  <meta name="description" content="AI Assistant API documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/assistant-api.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="api-reference">API Reference</h1>
+<p>Base URL: <code>http://localhost:8100</code> (standalone) or <code>/assistant</code> (behind Forge nginx)</p>
+<hr />
+<h2 id="health-check">Health Check</h2>
+<div class="codehilite"><pre><span></span><code>GET /api/v1/health
+</code></pre></div>
+
+<p><strong>Response:</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026.04.0&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;ollama&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;chromadb&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mistral:7b&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>status</code></td>
+<td><code>"ok"</code> if all dependencies healthy, <code>"degraded"</code> otherwise</td>
+</tr>
+<tr>
+<td><code>ollama</code></td>
+<td>Whether Ollama is reachable and has the configured model</td>
+</tr>
+<tr>
+<td><code>chromadb</code></td>
+<td>Whether ChromaDB is reachable</td>
+</tr>
+<tr>
+<td><code>model</code></td>
+<td>Configured LLM model name</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="chat-sse-streaming">Chat (SSE Streaming)</h2>
+<div class="codehilite"><pre><span></span><code>POST /api/v1/chat
+Content-Type: application/json
+</code></pre></div>
+
+<p><strong>Request Body:</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;How do I create a job template with survey variables?&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;context&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;page&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/templates/job_template/new&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;history&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;What is a job template?&quot;</span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span><span class="nt">&quot;role&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;A job template defines...&quot;</span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>message</code></td>
+<td>string</td>
+<td>Yes</td>
+<td>User's question</td>
+</tr>
+<tr>
+<td><code>context</code></td>
+<td>object</td>
+<td>No</td>
+<td>Page context (<code>page</code> key with current route)</td>
+</tr>
+<tr>
+<td><code>history</code></td>
+<td>array</td>
+<td>No</td>
+<td>Previous messages (last 3 exchanges used)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Response:</strong> <code>text/event-stream</code></p>
+<div class="codehilite"><pre><span></span><code>data: {&quot;token&quot;: &quot;To&quot;}
+data: {&quot;token&quot;: &quot; create&quot;}
+data: {&quot;token&quot;: &quot; a&quot;}
+data: {&quot;token&quot;: &quot; job&quot;}
+data: {&quot;token&quot;: &quot; template&quot;}
+data: {&quot;token&quot;: &quot;:&quot;}
+data: {&quot;token&quot;: &quot;\n\n&quot;}
+data: {&quot;token&quot;: &quot;1.&quot;}
+data: {&quot;token&quot;: &quot; Navigate&quot;}
+...
+data: {&quot;done&quot;: true}
+</code></pre></div>
+
+<p><strong>Error:</strong></p>
+<div class="codehilite"><pre><span></span><code>data: {&quot;error&quot;: &quot;Connection to Ollama failed&quot;, &quot;done&quot;: true}
+</code></pre></div>
+
+<hr />
+<h2 id="index-documents">Index Documents</h2>
+<div class="codehilite"><pre><span></span><code>POST /api/v1/index?rebuild=false
+</code></pre></div>
+
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rebuild</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td>Delete existing index and re-index from scratch</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Response:</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;indexed_chunks&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">142</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;rebuild&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<hr />
+<h2 id="openapi-documentation">OpenAPI Documentation</h2>
+<p>Interactive Swagger UI is available at:</p>
+<div class="codehilite"><pre><span></span><code>GET /api/v1/docs
+</code></pre></div>
+
+<p>OpenAPI JSON schema:</p>
+<div class="codehilite"><pre><span></span><code>GET /api/v1/openapi.json
+</code></pre></div>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

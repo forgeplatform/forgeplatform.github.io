@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Architecture Overview — Forge Platform Docs</title>
+  <meta name="description" content="Architecture Overview documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/architecture.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="01-architecture-overview">01 — Architecture Overview</h1>
+<h2 id="system-diagram">System Diagram</h2>
+<p><img alt="Forge Architecture" src="img/architecture.png" /></p>
+<details>
+<summary>Text version (for terminals)</summary>
+
+
+<div class="codehilite"><pre><span></span><code><span class="w">                        </span><span class="err">┌─────────────────────────────────────────┐</span>
+<span class="w">                        </span><span class="err">│</span><span class="w">              </span><span class="n">End</span><span class="w"> </span><span class="n">Users</span><span class="w">                   </span><span class="err">│</span>
+<span class="w">                        </span><span class="err">│</span><span class="w">         </span><span class="p">(</span><span class="n">Browser</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">API</span><span class="w"> </span><span class="n">Client</span><span class="p">)</span><span class="w">           </span><span class="err">│</span>
+<span class="w">                        </span><span class="err">└────────────────┬────────────────────────┘</span>
+<span class="w">                                         </span><span class="err">│</span>
+<span class="w">                                    </span><span class="n">HTTPS</span><span class="w"> </span><span class="p">(</span><span class="mi">443</span><span class="p">)</span>
+<span class="w">                                         </span><span class="err">│</span>
+<span class="w">                        </span><span class="err">┌────────────────▼────────────────────────┐</span>
+<span class="w">                        </span><span class="err">│</span><span class="w">            </span><span class="n">Nginx</span><span class="w"> </span><span class="p">(</span><span class="n">External</span><span class="p">)</span><span class="w">              </span><span class="err">│</span>
+<span class="w">                        </span><span class="err">│</span><span class="w">   </span><span class="n">TLS</span><span class="w"> </span><span class="n">termination</span><span class="p">,</span><span class="w"> </span><span class="n">rate</span><span class="w"> </span><span class="n">limiting</span><span class="p">,</span><span class="w">        </span><span class="err">│</span>
+<span class="w">                        </span><span class="err">│</span><span class="w">   </span><span class="n">security</span><span class="w"> </span><span class="n">headers</span><span class="p">,</span><span class="w"> </span><span class="n">HTTP</span><span class="err">→</span><span class="n">HTTPS</span><span class="w"> </span><span class="n">redirect</span><span class="w">  </span><span class="err">│</span>
+<span class="w">                        </span><span class="err">└────────────────┬────────────────────────┘</span>
+<span class="w">                                         </span><span class="err">│</span>
+<span class="w">                                    </span><span class="n">HTTP</span><span class="w"> </span><span class="p">(</span><span class="mi">8013</span><span class="p">)</span>
+<span class="w">                                         </span><span class="err">│</span>
+<span class="w">              </span><span class="err">┌──────────────────────────▼──────────────────────────┐</span>
+<span class="w">              </span><span class="err">│</span><span class="w">                </span><span class="n">Nginx</span><span class="w"> </span><span class="p">(</span><span class="n">Internal</span><span class="p">)</span><span class="w">                      </span><span class="err">│</span>
+<span class="w">              </span><span class="err">│</span><span class="w">        </span><span class="n">Routes</span><span class="w"> </span><span class="n">requests</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">correct</span><span class="w"> </span><span class="n">backend</span><span class="w">            </span><span class="err">│</span>
+<span class="w">              </span><span class="err">├──────────────┬──────────────────┬───────────────────┤</span>
+<span class="w">              </span><span class="err">│</span><span class="w">  </span><span class="o">/</span><span class="k">static</span><span class="o">/</span><span class="w">    </span><span class="err">│</span><span class="w">  </span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="p">,</span><span class="w"> </span><span class="o">/</span><span class="n">sso</span><span class="o">/</span><span class="p">,</span><span class="w">   </span><span class="err">│</span><span class="w">  </span><span class="o">/</span><span class="n">websocket</span><span class="o">/</span><span class="w">      </span><span class="err">│</span>
+<span class="w">              </span><span class="err">│</span><span class="w">  </span><span class="p">(</span><span class="n">files</span><span class="p">)</span><span class="w">     </span><span class="err">│</span><span class="w">  </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="n">pages</span><span class="p">)</span><span class="w">       </span><span class="err">│</span><span class="w">  </span><span class="p">(</span><span class="n">real</span><span class="o">-</span><span class="n">time</span><span class="p">)</span><span class="w">      </span><span class="err">│</span>
+<span class="w">              </span><span class="err">└──────┬───────┴────────┬─────────┴──────┬────────────┘</span>
+<span class="w">                     </span><span class="err">│</span><span class="w">                </span><span class="err">│</span><span class="w">                 </span><span class="err">│</span>
+<span class="w">              </span><span class="n">Static</span><span class="w"> </span><span class="n">files</span><span class="w">      </span><span class="n">uWSGI</span><span class="w"> </span><span class="p">(</span><span class="mi">8050</span><span class="p">)</span><span class="w">      </span><span class="n">Daphne</span><span class="w"> </span><span class="p">(</span><span class="mi">8051</span><span class="p">)</span>
+<span class="w">              </span><span class="o">/</span><span class="k">var</span><span class="o">/</span><span class="n">lib</span><span class="o">/</span><span class="n">awx</span><span class="o">/</span><span class="w">     </span><span class="n">Django</span><span class="w"> </span><span class="n">WSGI</span><span class="w">       </span><span class="n">Django</span><span class="w"> </span><span class="n">ASGI</span>
+<span class="w">              </span><span class="n">public</span><span class="o">/</span><span class="k">static</span><span class="o">/</span><span class="w">    </span><span class="p">(</span><span class="n">sync</span><span class="w"> </span><span class="n">HTTP</span><span class="p">)</span><span class="w">       </span><span class="p">(</span><span class="n">WebSocket</span><span class="p">)</span>
+<span class="w">                                     </span><span class="err">│</span><span class="w">                 </span><span class="err">│</span>
+<span class="w">              </span><span class="err">┌──────────────────────▼─────────────────▼────────────┐</span>
+<span class="w">              </span><span class="err">│</span><span class="w">                  </span><span class="n">Django</span><span class="w"> </span><span class="n">Application</span><span class="w">                   </span><span class="err">│</span>
+<span class="w">              </span><span class="err">│</span><span class="w">   </span><span class="n">REST</span><span class="w"> </span><span class="n">API</span><span class="w"> </span><span class="err">───</span><span class="w"> </span><span class="n">Serializers</span><span class="w"> </span><span class="err">───</span><span class="w"> </span><span class="n">Models</span><span class="w"> </span><span class="err">───</span><span class="w"> </span><span class="n">Database</span><span class="w">   </span><span class="err">│</span>
+<span class="w">              </span><span class="err">└──────────────────────┬───────────────────────────────┘</span>
+<span class="w">                                     </span><span class="err">│</span>
+<span class="w">                    </span><span class="err">┌────────────────▼────────┐</span>
+<span class="w">                    </span><span class="err">│</span><span class="w">     </span><span class="n">PostgreSQL</span><span class="w"> </span><span class="p">(</span><span class="mi">5432</span><span class="p">)</span><span class="w">    </span><span class="err">│</span>
+<span class="w">                    </span><span class="err">└─────────────────────────┘</span>
+
+<span class="w">              </span><span class="err">┌──────────────────────────────────────────────────────┐</span>
+<span class="w">              </span><span class="err">│</span><span class="w">                  </span><span class="n">Task</span><span class="w"> </span><span class="n">Container</span><span class="w">                       </span><span class="err">│</span>
+<span class="w">              </span><span class="err">│</span><span class="w">                                                       </span><span class="err">│</span>
+<span class="w">              </span><span class="err">│</span><span class="w">   </span><span class="n">Dispatcher</span><span class="w"> </span><span class="err">──►</span><span class="w"> </span><span class="n">Ansible</span><span class="w"> </span><span class="n">Runner</span><span class="w"> </span><span class="err">──►</span><span class="w"> </span><span class="n">Callback</span><span class="w"> </span><span class="n">Receiver</span><span class="w"> </span><span class="err">│</span>
+<span class="w">              </span><span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">                                  </span><span class="err">│</span><span class="w">            </span><span class="err">│</span>
+<span class="w">              </span><span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">              </span><span class="n">Receptor</span><span class="w">            </span><span class="n">WSRelay</span><span class="w">      </span><span class="err">│</span>
+<span class="w">              </span><span class="err">│</span><span class="w">       </span><span class="err">│</span><span class="w">           </span><span class="p">(</span><span class="n">mesh</span><span class="w"> </span><span class="n">networking</span><span class="p">)</span><span class="w">         </span><span class="err">│</span><span class="w">         </span><span class="err">│</span>
+<span class="w">              </span><span class="err">└───────┼────────────────────────────────────┼─────────┘</span>
+<span class="w">                      </span><span class="err">│</span><span class="w">                                    </span><span class="err">│</span>
+<span class="w">                      </span><span class="err">▼</span><span class="w">                                    </span><span class="err">▼</span>
+<span class="w">                </span><span class="err">┌──────────┐</span><span class="w">                        </span><span class="err">┌──────────────┐</span>
+<span class="w">                </span><span class="err">│</span><span class="w">  </span><span class="n">Redis</span><span class="w">   </span><span class="err">│</span><span class="w">                        </span><span class="err">│</span><span class="w">  </span><span class="n">WebSocket</span><span class="w">   </span><span class="err">│</span>
+<span class="w">                </span><span class="err">│</span><span class="w">  </span><span class="p">(</span><span class="mi">6379</span><span class="p">)</span><span class="w">  </span><span class="err">│</span><span class="w">                        </span><span class="err">│</span><span class="w">  </span><span class="n">Clients</span><span class="w">     </span><span class="err">│</span>
+<span class="w">                </span><span class="err">└──────────┘</span><span class="w">                        </span><span class="err">└──────────────┘</span>
+</code></pre></div>
+
+
+
+</details>
+
+<hr />
+<h2 id="component-roles">Component Roles</h2>
+<h3 id="web-container-forge-web">Web Container (<code>forge-web</code>)</h3>
+<p>Handles all HTTP and WebSocket traffic. Runs three processes via <code>supervisord</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Process</th>
+<th>Port</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Nginx (internal)</td>
+<td>8013</td>
+<td>Routes requests, serves static files</td>
+</tr>
+<tr>
+<td>uWSGI</td>
+<td>8050</td>
+<td>Django app — API, pages, authentication</td>
+</tr>
+<tr>
+<td>Daphne</td>
+<td>8051</td>
+<td>WebSocket connections for real-time updates</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Watch out:</strong> Internal Nginx is inside the container and handles routing. External Nginx
+is a separate container that terminates TLS. Don't confuse them — configuration lives in
+two different files:
+- External: <code>tools/docker-compose-prod/nginx/nginx.conf</code>
+- Internal: <code>tools/docker-compose-prod/settings/nginx-internal.conf</code></p>
+<h3 id="task-container-forge-task">Task Container (<code>forge-task</code>)</h3>
+<p>Handles background job execution. Runs four processes:</p>
+<table>
+<thead>
+<tr>
+<th>Process</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dispatcher</strong></td>
+<td>Picks tasks from Redis, manages capacity, starts jobs</td>
+</tr>
+<tr>
+<td><strong>Callback Receiver</strong></td>
+<td>Receives events from Ansible Runner, saves to database</td>
+</tr>
+<tr>
+<td><strong>WSRelay</strong></td>
+<td>Broadcasts job events to WebSocket clients</td>
+</tr>
+<tr>
+<td><strong>Receptor</strong></td>
+<td>Mesh networking for remote job execution</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Watch out:</strong> If any of these 4 processes goes down, jobs won't work correctly.
+Check with <code>supervisorctl status</code> inside the container.</p>
+<h3 id="postgresql">PostgreSQL</h3>
+<p>Stores all data: models, job events (partitioned), activity stream, RBAC roles,
+configuration. Job events are in a <strong>partitioned table</strong> — one partition per job,
+which is critical for performance since a single job can have tens of thousands of events.</p>
+<h3 id="redis">Redis</h3>
+<p>Used for two purposes:
+- <strong>DB 0:</strong> Celery message broker + Django Channels (WebSocket)
+- <strong>DB 1:</strong> Cache (API response caching, rate limiting)</p>
+<p><strong>Watch out:</strong> If Redis goes down, jobs won't start and WebSocket won't work.
+However, data in PostgreSQL remains safe.</p>
+<h3 id="receptor">Receptor</h3>
+<p>Mesh networking for distributed job execution. In a single-node deployment
+(default), Receptor runs locally. In a multi-node setup, it routes jobs to
+remote execution nodes over TCP port 2222.</p>
+<hr />
+<h2 id="request-flow-what-happens-when">Request Flow — What happens when...</h2>
+<h3 id="a-user-launches-a-job-template">...a user launches a job template</h3>
+<ol>
+<li>User clicks "Launch" in the UI or sends POST to <code>/api/v2/job_templates/{id}/launch/</code></li>
+<li>Django creates a <code>Job</code> record in the database with status <code>pending</code></li>
+<li>A Celery task is placed in the Redis queue</li>
+<li>Dispatcher picks up the task and transitions the job to <code>waiting</code> → <code>running</code></li>
+<li>Ansible Runner executes the playbook</li>
+<li>Events flow: Runner → Callback Receiver → database + WSRelay → WebSocket → browser</li>
+<li>Browser receives events and updates the UI in real-time (no page refresh needed)</li>
+</ol>
+<h3 id="an-external-system-sends-a-webhook-eda">...an external system sends a webhook (EDA)</h3>
+<ol>
+<li>External system (GitHub, Alertmanager, etc.) sends POST to <code>/api/v2/eda_webhooks/&lt;path&gt;/</code></li>
+<li>Nginx forwards to uWSGI (no authentication required on this endpoint)</li>
+<li>Django verifies the HMAC signature against the EventRule's webhook key</li>
+<li>An <code>EventLog</code> record is created with status <code>received</code></li>
+<li>A Celery task is dispatched for async rule evaluation</li>
+<li>The Celery task evaluates Jinja2 conditions against the webhook payload</li>
+<li>If conditions match: launches job templates, workflows, or sends notifications</li>
+<li><code>EventLog</code> is updated with results; <code>AuditEvent</code> is created for compliance</li>
+<li>Caller receives <code>202 Accepted</code> immediately (processing is async)</li>
+</ol>
+<h3 id="a-user-opens-a-page-in-the-browser">...a user opens a page in the browser</h3>
+<ol>
+<li>Browser sends a GET request</li>
+<li>Nginx terminates TLS, forwards to internal Nginx (8013)</li>
+<li>Internal Nginx:</li>
+<li><code>/static/*</code> → serves files directly from disk</li>
+<li><code>/websocket/*</code> → proxies to Daphne (8051)</li>
+<li>Everything else → proxies to uWSGI (8050)</li>
+<li>Django processes the request: middleware → URL routing → view → serializer → response</li>
+</ol>
+<hr />
+<h2 id="port-reference">Port Reference</h2>
+<table>
+<thead>
+<tr>
+<th>Port</th>
+<th>Service</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>443</td>
+<td>Nginx (external)</td>
+<td>HTTPS entry point for users</td>
+</tr>
+<tr>
+<td>80</td>
+<td>Nginx (external)</td>
+<td>HTTP → redirect to HTTPS</td>
+</tr>
+<tr>
+<td>8013</td>
+<td>Nginx (internal)</td>
+<td>Internal routing (within Docker network)</td>
+</tr>
+<tr>
+<td>8050</td>
+<td>uWSGI</td>
+<td>Django sync application</td>
+</tr>
+<tr>
+<td>8051</td>
+<td>Daphne</td>
+<td>Django async (WebSocket)</td>
+</tr>
+<tr>
+<td>5432</td>
+<td>PostgreSQL</td>
+<td>Database</td>
+</tr>
+<tr>
+<td>6379</td>
+<td>Redis</td>
+<td>Broker + cache</td>
+</tr>
+<tr>
+<td>2222</td>
+<td>Receptor</td>
+<td>Mesh networking</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Watch out:</strong> Ports 8050 and 8051 are not externally accessible — only internal Nginx
+on 8013 communicates with them. Do not expose 8050/8051 outside the Docker network.</p>
+<hr />
+<h2 id="directory-structure-where-things-live">Directory Structure — Where things live</h2>
+<div class="codehilite"><pre><span></span><code><span class="n">forge</span><span class="o">/</span><span class="w">                          </span><span class="c1"># Python backend</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">api</span><span class="o">/</span><span class="w">                        </span><span class="c1"># REST API (views, serializers, urls)</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">main</span><span class="o">/</span><span class="w">                       </span><span class="c1"># Core (models, tasks, signals, migrations, commands)</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">conf</span><span class="o">/</span><span class="w">                       </span><span class="c1"># Database-backed settings</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">settings</span><span class="o">/</span><span class="w">                   </span><span class="c1"># Django settings files</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">sso</span><span class="o">/</span><span class="w">                        </span><span class="c1"># SSO authentication backends</span>
+<span class="err">└──</span><span class="w"> </span><span class="n">ui_next</span><span class="o">/</span><span class="w">                    </span><span class="c1"># React frontend</span>
+
+<span class="n">tools</span><span class="o">/</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span><span class="o">-</span><span class="n">prod</span><span class="o">/</span><span class="w">        </span><span class="c1"># Production deployment</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">docker</span><span class="o">-</span><span class="n">compose</span><span class="o">.</span><span class="n">yml</span><span class="w">      </span><span class="c1"># 6 services</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="o">.</span><span class="n">env</span><span class="w">                    </span><span class="c1"># Environment variables</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">settings</span><span class="o">/</span><span class="w">               </span><span class="c1"># Django settings for production</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">nginx</span><span class="o">/</span><span class="w">                  </span><span class="c1"># Nginx config + SSL certificates</span>
+<span class="err">│</span><span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">receptor</span><span class="o">/</span><span class="w">               </span><span class="c1"># Receptor mesh config</span>
+<span class="err">│</span><span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="n">scripts</span><span class="o">/</span><span class="w">                </span><span class="c1"># Init, backup, healthcheck</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">ansible</span><span class="o">/</span><span class="n">roles</span><span class="o">/</span><span class="n">dockerfile</span><span class="o">/</span><span class="w">   </span><span class="c1"># Dockerfile generation</span>
+<span class="err">└──</span><span class="w"> </span><span class="n">scripts</span><span class="o">/</span><span class="w">                    </span><span class="c1"># Vagrant provisioning</span>
+
+<span class="n">requirements</span><span class="o">/</span><span class="w">                   </span><span class="c1"># Python dependencies</span>
+</code></pre></div>
+
+<hr />
+<h2 id="key-design-decisions">Key Design Decisions</h2>
+<h3 id="why-two-nginx-instances">Why two Nginx instances?</h3>
+<p>Internal Nginx is part of the Docker image and routes requests to uWSGI/Daphne.
+External Nginx is a separate container that handles TLS termination, rate limiting,
+and security headers. This separation allows the external Nginx to be replaced
+with a load balancer (HAProxy, AWS ALB) without changing the application.</p>
+<h3 id="why-partitioned-job-events">Why partitioned job events?</h3>
+<p>A single job with 100 hosts and 50 tasks generates ~5,000 events. A system running
+100 jobs daily has ~500,000 events per day. Without partitioning, every query would
+scan the entire table. With partitioning, a query for a specific job reads only
+one partition.</p>
+<h3 id="why-receptor-instead-of-ssh">Why Receptor instead of SSH?</h3>
+<p>Receptor provides mesh networking — hop-by-hop routing for air-gapped environments,
+automatic failover, and multiplexing. SSH requires a direct connection to every
+node, which doesn't work in complex network topologies.</p>
+<h3 id="why-database-backed-settings">Why database-backed settings?</h3>
+<p>Most settings can be changed without restarting the application via the API
+(<code>/api/v2/settings/</code>). This is critical for production where you don't want
+downtime to change a timeout or add an LDAP server.</p>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

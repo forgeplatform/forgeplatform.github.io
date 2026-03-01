@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Release Notes v2026.04.0 — Forge Platform Docs</title>
+  <meta name="description" content="Release Notes v2026.04.0 documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/release-2026.04.0.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="forge-2026040-release-notes">Forge 2026.04.0 — Release Notes</h1>
+<p><strong>Release date:</strong> 2026-04-03
+<strong>Based on:</strong> Forge 2026.03.0 + new features
+<strong>License:</strong> Apache License 2.0</p>
+<hr />
+<h2 id="overview">Overview</h2>
+<p>Forge 2026.04.0 delivers the remaining Tier 1 features from the post-release roadmap:
+Event-Driven Automation (EDA), AI Assistant, Dynamic Surveys, and Improved Audit Trail.</p>
+<hr />
+<h2 id="new-features">New Features</h2>
+<h3 id="event-driven-automation-eda">Event-Driven Automation (EDA)</h3>
+<p>Webhook-based event routing with user-defined rules. External systems (GitHub, GitLab,
+Alertmanager, PagerDuty, Datadog, CloudWatch, or any generic HTTP source) can trigger
+automated job launches, workflow executions, or notification dispatches.</p>
+<ul>
+<li><strong>EventRule model:</strong> Conditions (Jinja2) + Actions (launch job, workflow, notification)</li>
+<li><strong>Public webhook receiver:</strong> <code>/api/v2/eda_webhooks/&lt;path&gt;/</code> with HMAC signature verification</li>
+<li><strong>Jinja2 condition engine:</strong> Sandboxed evaluation against webhook payloads</li>
+<li><strong>Outbound webhooks:</strong> Push job status changes to external systems</li>
+<li><strong>EventLog:</strong> Full audit trail of received webhooks and rule evaluation results</li>
+<li><strong>Frontend:</strong> New "Automation" sidebar section with Event Rules, Event Logs, Outbound Webhooks pages</li>
+<li><strong>Security:</strong> HMAC verification (SHA-256/SHA-1), rate limiting via throttle, payload size limits, deduplication</li>
+<li><strong>Dry-run test endpoint:</strong> Evaluate conditions without firing actions</li>
+</ul>
+<h3 id="ai-assistant-ollama-rag">AI Assistant (Ollama RAG)</h3>
+<p>Optional microservice providing context-aware chat assistance using local LLMs.</p>
+<ul>
+<li><strong>forge-assistant</strong> repository: FastAPI + Ollama + ChromaDB</li>
+<li><strong>SSE streaming</strong> for real-time token delivery</li>
+<li><strong>Frontend chat panel</strong> with floating button, markdown rendering, context awareness</li>
+<li><strong>Privacy-first:</strong> All processing on-premises, no cloud API calls</li>
+</ul>
+<h3 id="dynamic-surveys">Dynamic Surveys</h3>
+<p>Survey questions with choices populated at launch time from three sources:
+database queries, external API calls, and Jinja2 templates.</p>
+<h3 id="improved-audit-trail">Improved Audit Trail</h3>
+<ul>
+<li><strong>ActivityStream enhanced:</strong> Now captures <code>actor_ip</code>, <code>actor_user_agent</code>, <code>actor_session_id</code></li>
+<li><strong>AuditEvent model:</strong> Immutable append-only security log for compliance</li>
+<li><strong>Frontend Audit Log page:</strong> Filters, expandable rows, CSV export</li>
+<li><strong>SIEM export:</strong> Flat JSON format for Splunk/ELK/Datadog</li>
+</ul>
+<hr />
+<h2 id="new-api-endpoints">New API Endpoints</h2>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/v2/event_rules/</code></td>
+<td>GET, POST</td>
+<td>List/create event rules</td>
+</tr>
+<tr>
+<td><code>/api/v2/event_rules/{id}/</code></td>
+<td>GET, PATCH, DELETE</td>
+<td>Event rule CRUD</td>
+</tr>
+<tr>
+<td><code>/api/v2/event_rules/{id}/webhook_key/</code></td>
+<td>GET, POST</td>
+<td>Get/rotate webhook key</td>
+</tr>
+<tr>
+<td><code>/api/v2/event_rules/{id}/event_logs/</code></td>
+<td>GET</td>
+<td>Logs for this rule</td>
+</tr>
+<tr>
+<td><code>/api/v2/event_rules/{id}/test/</code></td>
+<td>POST</td>
+<td>Dry-run condition test</td>
+</tr>
+<tr>
+<td><code>/api/v2/event_rules/{id}/enable/</code></td>
+<td>POST</td>
+<td>Enable rule</td>
+</tr>
+<tr>
+<td><code>/api/v2/event_rules/{id}/disable/</code></td>
+<td>POST</td>
+<td>Disable rule</td>
+</tr>
+<tr>
+<td><code>/api/v2/event_logs/</code></td>
+<td>GET</td>
+<td>List all event logs</td>
+</tr>
+<tr>
+<td><code>/api/v2/event_logs/{id}/</code></td>
+<td>GET</td>
+<td>Event log detail</td>
+</tr>
+<tr>
+<td><code>/api/v2/outbound_webhooks/</code></td>
+<td>GET, POST</td>
+<td>List/create outbound webhooks</td>
+</tr>
+<tr>
+<td><code>/api/v2/outbound_webhooks/{id}/</code></td>
+<td>GET, PATCH, DELETE</td>
+<td>Outbound webhook CRUD</td>
+</tr>
+<tr>
+<td><code>/api/v2/outbound_webhooks/{id}/test/</code></td>
+<td>POST</td>
+<td>Send test payload</td>
+</tr>
+<tr>
+<td><code>/api/v2/eda_webhooks/{path}/</code></td>
+<td>POST</td>
+<td>Public webhook receiver (no auth)</td>
+</tr>
+<tr>
+<td><code>/api/v2/audit_events/</code></td>
+<td>GET</td>
+<td>List audit events</td>
+</tr>
+<tr>
+<td><code>/api/v2/audit_events/?format=csv</code></td>
+<td>GET</td>
+<td>Export as CSV</td>
+</tr>
+<tr>
+<td><code>/api/v2/audit_events/?format=siem</code></td>
+<td>GET</td>
+<td>Export for SIEM</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="new-database-tables">New Database Tables</h2>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>main_eventrule</code></td>
+<td>Webhook rules with conditions and actions</td>
+</tr>
+<tr>
+<td><code>main_eventlog</code></td>
+<td>Incoming webhook events and evaluation results</td>
+</tr>
+<tr>
+<td><code>main_outboundwebhook</code></td>
+<td>Outbound webhook configurations</td>
+</tr>
+<tr>
+<td><code>main_auditevent</code></td>
+<td>Immutable security audit log</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="frontend-changes">Frontend Changes</h2>
+<ul>
+<li>New <strong>Automation</strong> sidebar section: Event Rules, Event Logs, Outbound Webhooks</li>
+<li>New <strong>Audit Log</strong> page with filters, expandable rows, CSV export</li>
+<li>New <strong>AI Assistant</strong> floating chat panel</li>
+<li><strong>Dynamic survey</strong> support in launch dialog and survey editor</li>
+<li>10 new pages, 3 new API hooks, TypeScript interfaces for all EDA types</li>
+</ul>
+<hr />
+<h2 id="quality-metrics">Quality Metrics</h2>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Backend tests (standalone EDA)</td>
+<td>38 passed</td>
+</tr>
+<tr>
+<td>Frontend tests (vitest)</td>
+<td>58 passed</td>
+</tr>
+<tr>
+<td>TypeScript compilation</td>
+<td>0 errors</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="documentation">Documentation</h2>
+<p>New documentation files:
+- <code>docs/13-dynamic-surveys.md</code> — Dynamic survey system
+- <code>docs/14-audit-trail.md</code> — Audit trail and compliance logging
+- <code>docs/15-event-driven-automation.md</code> — EDA architecture, API, security, quick start</p>
+<p>Updated documentation:
+- <code>01-architecture-overview.md</code> — Added EDA webhook flow
+- <code>02-backend-django.md</code> — Added EDA models reference
+- <code>03-frontend-react.md</code> — Added EDA routes
+- <code>04-task-engine.md</code> — Added EDA as job launch source
+- <code>06-database-schema.md</code> — Added EDA tables and ER relationships
+- <code>09-testing-guide.md</code> — Added standalone test suite
+- <code>11-api-reference.md</code> — Added all EDA endpoints
+- <code>wiki-index.md</code> — Added docs 13, 14, 15
+- <code>future_development_plan.md</code> — Updated competitive landscape (EDA, Dynamic Surveys, AI Assistant, Audit Trail: Planned → Yes)</p>
+<hr />
+<h2 id="v2026040-patch1-2026-04-13">v2026.04.0-patch1 (2026-04-13)</h2>
+<h3 id="improvements">Improvements</h3>
+<ul>
+<li><strong>AI Assistant redesign</strong> — Floating chat widget with welcome message, minimize/maximize, message timestamps, streaming responses</li>
+<li><strong>Assistant RAG documentation</strong> — 14 knowledge base files (850 lines) covering all features: EDA, Drift, Policy, Scanner, Service Catalog, Tenancy, WebAuthn, Recommendations, Observability, Wizards, API reference, common errors</li>
+<li><strong>ChromaDB client upgrade</strong> — Updated from 0.5.23 to 1.5.7 for compatibility with ChromaDB server 1.4.x</li>
+<li><strong>Nginx proxy</strong> — Added <code>/assistant/</code> proxy route for AI Assistant API with SSE streaming support</li>
+</ul>
+<h3 id="bug-fixes">Bug Fixes</h3>
+<ul>
+<li><strong>Migration ordering</strong> — Fixed <code>_OrgAdmin_to_use_ig.py</code> to use <code>apps.get_model()</code> instead of direct model import, preventing schema mismatch on fresh deploys</li>
+<li><strong>Missing migrations</strong> — Added <code>0204_audit_event</code> migration for AuditEvent model and ActivityStream audit fields (actor_ip, actor_user_agent, actor_session_id)</li>
+<li><strong>Migration chain</strong> — Reordered migrations so audit_event (0204) precedes RLS policies (0206) which references the table</li>
+<li><strong>Assistant docker-compose</strong> — Fixed healthchecks for Ollama and ChromaDB containers (curl not available in images)</li>
+<li><strong>Assistant registry path</strong> — Fixed image path from <code>forgeplatform</code> to <code>forge-platform</code></li>
+</ul>
+<h3 id="testing">Testing</h3>
+<ul>
+<li><strong>Backend</strong> — Added <code>test_comprehensive.py</code>: 97 standalone tests covering SimpleDAG (cycle detection, topological sort), K8s CPU/memory parsing, Jinja sanitization, safe YAML dump, string coercion, vars validation</li>
+<li><strong>Frontend</strong> — Added <code>statusConfig.test.ts</code>, <code>client.test.ts</code>, <code>app.test.ts</code>: 72 tests for status mappings, API error flattening, route completeness (all 70+ routes verified)</li>
+<li><strong>CI pipeline</strong> — Jenkinsfile now runs 4 parallel test stages: Backend Standalone, Backend Unit, Frontend, Assistant</li>
+<li><strong>Total test count</strong> — Backend 404 + Frontend 212 = 616 tests passing</li>
+</ul>
+<h3 id="refactoring">Refactoring</h3>
+<ul>
+<li><strong>forge-assistant</strong> — Extracted shared ChromaDB client and embedding functions into <code>app/db.py</code>, eliminating 32 lines of duplicated code between <code>rag.py</code> and <code>indexer.py</code></li>
+</ul>
+<h3 id="quality-metrics_1">Quality Metrics</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Backend standalone tests</td>
+<td>404 passed</td>
+</tr>
+<tr>
+<td>Frontend tests (vitest)</td>
+<td>212 passed</td>
+</tr>
+<tr>
+<td>Assistant knowledge base</td>
+<td>14 docs, 92 chunks indexed</td>
+</tr>
+<tr>
+<td>TypeScript compilation</td>
+<td>0 errors</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="competitive-landscape-update">Competitive Landscape Update</h2>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Forge</th>
+<th>AWX</th>
+<th>AAP 2.5+</th>
+<th>Ascender</th>
+<th>Semaphore</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dynamic surveys</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Event-driven (EDA)</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>AI assistant (RAG)</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Audit trail (immutable)</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+<td>Partial</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>IaC scanning</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Policy-as-Code (OPA)</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Drift detection</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Self-service portal</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+<td>Partial</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Multi-tenancy (RLS)</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+<td>Partial</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>WebAuthn/Passkey MFA</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+<tr>
+<td>Smart recommendations</td>
+<td><strong>Yes</strong></td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

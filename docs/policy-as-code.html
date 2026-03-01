@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Policy-as-Code (OPA) — Forge Platform Docs</title>
+  <meta name="description" content="Policy-as-Code (OPA) documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/policy-as-code.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="19-policy-as-code-opa">19 — Policy-as-Code (OPA)</h1>
+<p>Runtime policy evaluation for launches. Forge stores Rego modules in
+the database, pushes them to an OPA sidecar, and asks OPA before every
+Job / WorkflowJob / AdHocCommand starts. OPA can return <strong>allow</strong>,
+<strong>warn</strong>, or <strong>deny</strong>.</p>
+<hr />
+<h2 id="architecture">Architecture</h2>
+<div class="codehilite"><pre><span></span><code><span class="w">                    </span><span class="err">┌────────────────────┐</span>
+<span class="w">   </span><span class="n">admin</span><span class="w"> </span><span class="n">saves</span><span class="w"> </span><span class="n">a</span><span class="w">    </span><span class="err">│</span><span class="w">  </span><span class="n">Policy</span><span class="o">.</span><span class="n">rego_module</span><span class="err">│</span>
+<span class="w">   </span><span class="n">Rego</span><span class="w"> </span><span class="n">policy</span><span class="w"> </span><span class="err">────►│</span><span class="w">  </span><span class="o">+</span><span class="w"> </span><span class="n">applies_to</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="o">...</span><span class="err">│</span>
+<span class="w">                    </span><span class="err">└────────┬───────────┘</span>
+<span class="w">                             </span><span class="err">│</span><span class="w"> </span><span class="n">post_save</span><span class="w"> </span><span class="k">signal</span>
+<span class="w">                             </span><span class="err">▼</span>
+<span class="w">                    </span><span class="n">forge</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">policy</span><span class="o">.</span><span class="n">sync</span><span class="o">.</span><span class="n">push_policy</span><span class="p">()</span>
+<span class="w">                             </span><span class="err">│</span>
+<span class="w">                             </span><span class="err">│</span><span class="w"> </span><span class="n">PUT</span><span class="w"> </span><span class="o">/</span><span class="n">v1</span><span class="o">/</span><span class="n">policies</span><span class="o">/</span><span class="n">forge_</span><span class="o">&lt;</span><span class="n">id</span><span class="o">&gt;</span>
+<span class="w">                             </span><span class="err">▼</span>
+<span class="w">                    </span><span class="err">┌────────────────────┐</span>
+<span class="w">                    </span><span class="err">│</span><span class="w">   </span><span class="n">forge</span><span class="o">-</span><span class="n">opa</span><span class="w">         </span><span class="err">│</span>
+<span class="w">                    </span><span class="err">│</span><span class="w">   </span><span class="p">(</span><span class="n">sidecar</span><span class="p">)</span><span class="w">         </span><span class="err">│</span>
+<span class="w">                    </span><span class="err">└────────────────────┘</span>
+<span class="w">                             </span><span class="err">▲</span>
+<span class="w">                             </span><span class="err">│</span><span class="w"> </span><span class="n">POST</span><span class="w"> </span><span class="o">/</span><span class="n">v1</span><span class="o">/</span><span class="n">data</span><span class="o">/&lt;</span><span class="n">package_path</span><span class="o">&gt;</span>
+<span class="w">                             </span><span class="err">│</span><span class="w">     </span><span class="p">{</span><span class="s2">&quot;input&quot;</span><span class="p">:</span><span class="w"> </span><span class="o">&lt;</span><span class="n">context</span><span class="o">&gt;</span><span class="p">}</span>
+<span class="w">                             </span><span class="err">│</span>
+<span class="w">              </span><span class="err">┌──────────────┴──────────────┐</span>
+<span class="w">              </span><span class="err">│</span><span class="w">  </span><span class="n">evaluate_launch</span><span class="p">(</span><span class="n">unified_job</span><span class="p">)</span><span class="err">│</span><span class="w">  </span><span class="n">hooked</span><span class="w"> </span><span class="n">into</span><span class="p">:</span>
+<span class="w">              </span><span class="err">│</span><span class="w">                              </span><span class="err">│</span><span class="w">  </span><span class="o">-</span><span class="w"> </span><span class="n">JobTemplateLaunch</span><span class="o">.</span><span class="n">post</span>
+<span class="w">              </span><span class="err">│</span><span class="w">                              </span><span class="err">│</span><span class="w">  </span><span class="o">-</span><span class="w"> </span><span class="n">WorkflowJobTemplateLaunch</span><span class="o">.</span><span class="n">post</span>
+<span class="w">              </span><span class="err">│</span><span class="w">                              </span><span class="err">│</span><span class="w">  </span><span class="o">-</span><span class="w"> </span><span class="n">AdHocCommandList</span><span class="o">.</span><span class="n">create</span>
+<span class="w">              </span><span class="err">└──────────────┬───────────────┘</span>
+<span class="w">                             </span><span class="err">│</span>
+<span class="w">                             </span><span class="err">▼</span>
+<span class="w">                  </span><span class="n">parse_decision</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+<span class="w">                  </span><span class="err">→</span><span class="w"> </span><span class="p">(</span><span class="n">warns</span><span class="p">:</span><span class="w"> </span><span class="n">list</span><span class="p">,</span><span class="w"> </span><span class="n">denies</span><span class="p">:</span><span class="w"> </span><span class="n">list</span><span class="p">)</span>
+<span class="w">                             </span><span class="err">│</span>
+<span class="w">              </span><span class="err">┌──────────────┴──────────────┐</span>
+<span class="w">              </span><span class="err">│</span><span class="w">   </span><span class="n">PolicyDecisionResult</span><span class="w">       </span><span class="err">│</span>
+<span class="w">              </span><span class="err">│</span><span class="w">   </span><span class="o">.</span><span class="n">allowed</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="o">.</span><span class="n">warn_messages</span><span class="w"> </span><span class="o">/</span><span class="err">│</span>
+<span class="w">              </span><span class="err">│</span><span class="w">   </span><span class="o">.</span><span class="n">deny_messages</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="o">.</span><span class="n">decisions</span><span class="err">│</span>
+<span class="w">              </span><span class="err">└──────────────┬───────────────┘</span>
+<span class="w">                             </span><span class="err">│</span>
+<span class="w">                  </span><span class="n">PolicyDecision</span><span class="w"> </span><span class="n">rows</span><span class="w"> </span><span class="n">persisted</span>
+<span class="w">                             </span><span class="err">│</span>
+<span class="w">              </span><span class="err">┌──────────────┴───────────┐</span>
+<span class="w">              </span><span class="err">▼</span><span class="w">                          </span><span class="err">▼</span>
+<span class="w">          </span><span class="n">deny</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="mi">403</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">delete</span><span class="w"> </span><span class="n">UJ</span><span class="w">    </span><span class="n">warn</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">annotate</span><span class="w"> </span><span class="n">UJ</span><span class="o">.</span><span class="n">job_explanation</span>
+<span class="w">                                             </span><span class="k">continue</span><span class="w"> </span><span class="n">with</span><span class="w"> </span><span class="n">signal_start</span>
+</code></pre></div>
+
+<p>The hook is <strong>strictly between</strong> <code>create_unified_job(...)</code> and
+<code>signal_start(...)</code>. By that point we know all of the launch context
+(extra_vars, credentials, inventory) but the job has not yet been queued.
+This is the smallest seam in the launch path that gives policy access
+to the full request.</p>
+<hr />
+<h2 id="models">Models</h2>
+<p><code>forge/main/models/policy.py</code></p>
+<h3 id="policycommonmodelnamenotunique"><code>Policy(CommonModelNameNotUnique)</code></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>organization</code></td>
+<td>FK Organization (null = global)</td>
+</tr>
+<tr>
+<td><code>rego_module</code></td>
+<td>Full Rego source — pushed to OPA on save</td>
+</tr>
+<tr>
+<td><code>package_path</code></td>
+<td>OPA Data path queried, e.g. <code>forge.launch</code></td>
+</tr>
+<tr>
+<td><code>enforcement</code></td>
+<td><code>none</code> / <code>warn</code> / <code>enforce</code></td>
+</tr>
+<tr>
+<td><code>enabled</code></td>
+<td>bool</td>
+</tr>
+<tr>
+<td><code>applies_to</code></td>
+<td>JSON list of resource types (<code>job_template</code>, <code>workflow_job_template</code>, <code>ad_hoc_command</code>); empty = all</td>
+</tr>
+<tr>
+<td><code>trigger_count</code>, <code>last_triggered_at</code>, <code>last_evaluated_at</code></td>
+<td>populated by the evaluator</td>
+</tr>
+<tr>
+<td><code>last_sync_status</code></td>
+<td><code>ok</code> / <code>failed</code> / blank — set by the post_save signal</td>
+</tr>
+</tbody>
+</table>
+<p><code>Organization.policy_enforcement</code> (<code>none/warn/enforce</code>, default <code>none</code>)
+gates everything for the org.</p>
+<h3 id="policydecisioncreatedmodifiedmodel"><code>PolicyDecision(CreatedModifiedModel)</code></h3>
+<p>One row per policy hit (warn or deny). Stores <code>decision</code>, the cached
+<code>policy_name</code> (so historical rows survive policy deletion), the
+<code>unified_job</code> and <code>unified_job_template</code> references, the user that
+triggered it, the human-readable <code>message</code>, and the full <code>context</code>
+JSON used for the eval.</p>
+<h3 id="pure-helpers">Pure helpers</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">effective_enforcement</span><span class="p">(</span><span class="n">global_enabled</span><span class="p">,</span> <span class="n">org_enforcement</span><span class="p">,</span> <span class="n">policy_enforcement</span><span class="p">)</span>
+<span class="n">fail_mode_decision</span><span class="p">(</span><span class="n">opa_unavailable</span><span class="p">,</span> <span class="n">fail_mode</span><span class="p">)</span>
+</code></pre></div>
+
+<p>Both are exported and unit-tested standalone.</p>
+<hr />
+<h2 id="opa-client-forgemainpolicyopa_clientpy">OPA client — <code>forge/main/policy/opa_client.py</code></h2>
+<p>Tiny wrapper around <code>requests</code>. No extra dependency.</p>
+<div class="codehilite"><pre><span></span><code><span class="n">upload_policy</span><span class="p">(</span><span class="n">server_url</span><span class="p">,</span> <span class="n">policy_id</span><span class="p">,</span> <span class="n">rego_module</span><span class="p">,</span> <span class="n">timeout_ms</span><span class="p">)</span>
+<span class="n">delete_policy</span><span class="p">(</span><span class="n">server_url</span><span class="p">,</span> <span class="n">policy_id</span><span class="p">,</span> <span class="n">timeout_ms</span><span class="p">)</span>
+<span class="n">evaluate</span><span class="p">(</span><span class="n">server_url</span><span class="p">,</span> <span class="n">package_path</span><span class="p">,</span> <span class="n">input_doc</span><span class="p">,</span> <span class="n">timeout_ms</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">result</span>
+<span class="n">parse_decision</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span><span class="n">warns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">denies</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span>
+</code></pre></div>
+
+<p><code>parse_decision</code> accepts every shape OPA might return:</p>
+<ul>
+<li>bare <code>bool</code> (<code>true</code> denies)</li>
+<li>bare <code>str</code> (deny message)</li>
+<li>list of strings or dicts (each entry = deny / warn-by-severity)</li>
+<li>dict with <code>warn</code> / <code>deny</code> lists</li>
+<li>dict with <code>violations: [{severity, message}, ...]</code></li>
+</ul>
+<p>Anything that doesn't match is treated as a silent allow.</p>
+<hr />
+<h2 id="sync-forgemainpolicysyncpy">Sync — <code>forge/main/policy/sync.py</code></h2>
+<p><code>post_save</code> and <code>post_delete</code> signal receivers push or remove the Rego
+text via OPA's <code>/v1/policies/forge_&lt;policy_id&gt;</code> endpoint. Failures
+update <code>Policy.last_sync_status='failed'</code> but never raise — operators
+see the failure in the list page.</p>
+<p>The receivers are connected at module import time. Wired in
+<code>forge/main/models/__init__.py</code>:</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">forge.main.policy.sync</span>  <span class="c1"># noqa: F401  -- registers signals</span>
+</code></pre></div>
+
+<hr />
+<h2 id="evaluator-forgemainpolicyevaluatorpy">Evaluator — <code>forge/main/policy/evaluator.py</code></h2>
+<div class="codehilite"><pre><span></span><code><span class="n">build_launch_context</span><span class="p">(</span><span class="n">unified_job</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+<span class="n">evaluate_launch</span><span class="p">(</span><span class="n">unified_job</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PolicyDecisionResult</span>
+</code></pre></div>
+
+<p>The context document shape:</p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;resource_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;job_template&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;resource_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;resource_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Restart nginx&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;organization_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;organization_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Default&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;user&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;alice&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;is_superuser&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;extra_vars&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;hostname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;web01&quot;</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;inventory&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">7</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;prod-web&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;credentials&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;prod-ssh&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ssh&quot;</span><span class="p">}],</span>
+<span class="w">  </span><span class="nt">&quot;playbook&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;restart_nginx.yml&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;now_iso&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-04-08T19:30:00Z&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;client_ip&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;10.0.0.42&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><code>evaluate_launch</code> is a no-op when:</p>
+<ul>
+<li><code>OPA_ENABLED=False</code> globally, OR</li>
+<li>the job's organization has <code>policy_enforcement='none'</code>.</li>
+</ul>
+<p>Otherwise it iterates <code>Policy.objects.filter(enabled=True)</code> whose
+<code>applies_to</code> includes the resource type, evaluates each, and aggregates
+the verdict. The org's enforcement value caps the per-policy mode:
+an org in <code>warn</code> never blocks even if a policy is <code>enforce</code>.</p>
+<hr />
+<h2 id="settings-forgemainconfpy">Settings — <code>forge/main/conf.py</code></h2>
+<p>Registered under the <strong>Security</strong> category:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OPA_ENABLED</code></td>
+<td><code>False</code></td>
+<td>Master switch</td>
+</tr>
+<tr>
+<td><code>OPA_SERVER_URL</code></td>
+<td><code>http://forge-opa:8181</code></td>
+<td>Base URL of the sidecar</td>
+</tr>
+<tr>
+<td><code>OPA_EVALUATION_TIMEOUT_MS</code></td>
+<td><code>2000</code></td>
+<td>Per-evaluation timeout</td>
+</tr>
+<tr>
+<td><code>OPA_FAIL_MODE</code></td>
+<td><code>allow</code></td>
+<td>What happens when OPA is unreachable. <code>allow</code> = fail-open, <code>deny</code> = fail-closed.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="rest-api">REST API</h2>
+<p>Mounted under <code>/api/v2/policies/</code> and <code>/api/v2/policy_decisions/</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET / POST</td>
+<td><code>/api/v2/policies/</code></td>
+<td>List + create</td>
+</tr>
+<tr>
+<td>GET / PATCH / DELETE</td>
+<td><code>/api/v2/policies/{id}/</code></td>
+<td>CRUD</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/policies/{id}/enable/</code></td>
+<td>Enable</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/policies/{id}/disable/</code></td>
+<td>Disable</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/policies/{id}/test/</code></td>
+<td>Dry-run with <code>{input}</code></td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/policy_decisions/</code></td>
+<td>List (filter: <code>decision</code>, <code>policy</code>, <code>unified_job</code>, <code>since</code>)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/policy_decisions/{id}/</code></td>
+<td>Detail</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="tests-tests_standalonetest_policypy">Tests — <code>tests_standalone/test_policy.py</code></h2>
+<p>19 standalone tests, no Django bootstrap (same pattern as
+<code>test_drift.py</code>):</p>
+<ul>
+<li><code>effective_enforcement</code> full matrix (global × org × policy).</li>
+<li><code>fail_mode_decision</code> for OPA up/down × allow/deny mode.</li>
+<li><code>parse_decision</code> for every supported shape: empty, bool, str, list,
+  dict with warn/deny lists, dict with violations, dict with <code>deny: bool</code>.</li>
+<li><code>applies_to_resource</code> matching.</li>
+</ul>
+<p>Run with: <code>python -m unittest tests_standalone.test_policy -v</code></p>
+<hr />
+<h2 id="end-to-end-manual-verification">End-to-end manual verification</h2>
+<ol>
+<li>Add the OPA sidecar to compose (<code>forge-deploy/docker-compose.yml</code>,
+   service <code>forge-opa</code>).</li>
+<li>Settings → Security → set <code>OPA_ENABLED=true</code>,
+   <code>OPA_SERVER_URL=http://forge-opa:8181</code>.</li>
+<li>PATCH an organization's <code>policy_enforcement</code> to <code>enforce</code>.</li>
+<li>Create a Policy via the UI: <code>applies_to=[job_template]</code>,
+   <code>enforcement=enforce</code>, package <code>forge.launch</code>, body:
+   <code>rego
+   package forge.launch
+   default deny := false
+   deny if {
+     input.inventory.name == "prod-web"
+     hour := time.parse_rfc3339_ns(input.now_iso) / 1e9 / 3600 % 24
+     hour &gt;= 18
+   }</code></li>
+<li>Try to launch a JT with the prod-web inventory after 18:00 → 403 +
+   PolicyDecision row with decision <code>deny</code>.</li>
+<li>Stop OPA, set <code>OPA_FAIL_MODE=deny</code>, retry → blocked with
+   "OPA unavailable".</li>
+<li>Switch to <code>OPA_FAIL_MODE=allow</code> → launches succeed but a warn
+   PolicyDecision is logged for visibility.</li>
+</ol>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Engine — Forge Platform Docs</title>
+  <meta name="description" content="Task Engine documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/task-engine.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="04-task-engine">04 — Task Engine</h1>
+<p>The task engine manages the lifecycle of every job from launch to completion.
+This is the most important part of the system — if you don't understand this,
+you won't be able to diagnose job issues.</p>
+<hr />
+<h2 id="job-lifecycle">Job Lifecycle</h2>
+<p>Every job goes through a defined state machine:</p>
+<div class="codehilite"><pre><span></span><code>  Launch
+    │
+    ▼
+ pending ──► waiting ──► running ──► successful
+                                  ├── failed
+                                  ├── error
+                                  └── canceled
+</code></pre></div>
+
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+<th>Typical cause if stuck</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pending</code></td>
+<td>In Celery queue, waiting for dispatcher</td>
+<td>Redis is down or dispatcher crashed</td>
+</tr>
+<tr>
+<td><code>waiting</code></td>
+<td>Dispatcher has it, waiting for capacity</td>
+<td>No free capacity on nodes</td>
+</tr>
+<tr>
+<td><code>running</code></td>
+<td>Ansible Runner is executing the playbook</td>
+<td>Playbook takes a long time (normal)</td>
+</tr>
+<tr>
+<td><code>successful</code></td>
+<td>Playbook finished with exit code 0</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>failed</code></td>
+<td>Playbook finished with errors</td>
+<td>Error in playbook or unreachable host</td>
+</tr>
+<tr>
+<td><code>error</code></td>
+<td>System error (not a playbook issue)</td>
+<td>Problem with container, network, or receptor</td>
+</tr>
+<tr>
+<td><code>canceled</code></td>
+<td>User or system canceled it</td>
+<td>Manual action or timeout</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="what-happens-step-by-step">What Happens Step by Step</h2>
+<p>Jobs can be launched from multiple sources:
+- <strong>Manual:</strong> User clicks "Launch" in the UI or calls <code>POST /api/v2/job_templates/{id}/launch/</code>
+- <strong>Schedule:</strong> iCal recurrence rule triggers at the configured time
+- <strong>Webhook (legacy):</strong> Direct webhook on a JobTemplate (GitHub/GitLab push triggers a specific template)
+- <strong>EDA Rule:</strong> Event-Driven Automation rule fires after evaluating conditions on an incoming webhook (see <code>docs/15-event-driven-automation.md</code>)
+- <strong>Workflow:</strong> A workflow node launches the job as part of a DAG execution</p>
+<ol>
+<li><strong>Launch:</strong> API creates a <code>Job</code> record in the database (status: <code>pending</code>), places a Celery task in Redis</li>
+<li><strong>Dispatch:</strong> Dispatcher reads the task from Redis, checks capacity, selects a node</li>
+<li><strong>Execution:</strong> Ansible Runner starts <code>ansible-playbook</code> with all parameters</li>
+<li><strong>Events:</strong> Every play/task/host result generates an event → Callback Receiver → database</li>
+<li><strong>Real-time:</strong> WSRelay sends events to WebSocket → browser updates UI</li>
+<li><strong>Completion:</strong> Runner finishes → job status is updated → notifications are sent</li>
+</ol>
+<hr />
+<h2 id="capacity-why-a-job-stays-in-waiting">Capacity — Why a Job Stays in "waiting"</h2>
+<p>Each node has a capacity calculated from CPU and memory:</p>
+<div class="codehilite"><pre><span></span><code>CPU capacity  = CPU cores × 4 forks per core
+RAM capacity  = RAM (MB) / 100 MB per fork
+Effective     = whichever is smaller
+</code></pre></div>
+
+<p><strong>Example: 4-core machine with 8GB RAM</strong>
+- CPU: 4 × 4 = 16 forks
+- RAM: 8192 / 100 = 81 forks
+- Effective: 16 forks
+- If 3 jobs are running with 5 forks each = 15 consumed, 1 remaining — next job waits</p>
+<h3 id="watch-out">Watch out</h3>
+<ul>
+<li>
+<p><strong>Forks:</strong> Each job uses as many forks as defined on the template
+  (default 5). Reducing forks on the template allows more concurrent jobs.</p>
+</li>
+<li>
+<p><strong><code>list_instances</code>:</strong> Use <code>forge-manage list_instances</code> to see capacity.
+  If <code>remaining</code> = 0, jobs are waiting.</p>
+</li>
+<li>
+<p><strong>Instance Groups:</strong> Organizations are mapped to instance groups. If an organization
+  has only one group with one node, and that node is full — all jobs for that organization wait.</p>
+</li>
+</ul>
+<hr />
+<h2 id="receptor-mesh">Receptor Mesh</h2>
+<p>Receptor enables distributed job execution across multiple nodes.</p>
+<h3 id="node-types">Node Types</h3>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Serves API</th>
+<th>Runs jobs</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hybrid</code></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Single-node deployment (default)</td>
+</tr>
+<tr>
+<td><code>control</code></td>
+<td>Yes</td>
+<td>No</td>
+<td>Dedicated API server</td>
+</tr>
+<tr>
+<td><code>execution</code></td>
+<td>No</td>
+<td>Yes</td>
+<td>Dedicated job runner</td>
+</tr>
+<tr>
+<td><code>hop</code></td>
+<td>No</td>
+<td>No</td>
+<td>Relay for air-gapped networks</td>
+</tr>
+</tbody>
+</table>
+<h3 id="watch-out_1">Watch out</h3>
+<ul>
+<li>In a single-node deployment (default), Receptor runs locally and doesn't need configuration.</li>
+<li>Port 2222 (TCP) is used for inter-node communication. Must be open between nodes.</li>
+<li>The Receptor control socket is at <code>/var/run/awx-receptor/receptor.sock</code> — must be
+  shared between the web and task containers.</li>
+</ul>
+<hr />
+<h2 id="event-processing">Event Processing</h2>
+<h3 id="why-job-events-matter">Why job events matter</h3>
+<p>Job output is NOT one large text file. Every line/task/host result is a separate
+<code>JobEvent</code> record in the database. This enables:
+- Streaming output in real-time
+- Filtering by host
+- Searching within the output
+- Efficient storage of large outputs</p>
+<h3 id="partitioned-table">Partitioned table</h3>
+<p>The <code>main_jobevent</code> table is partitioned by <code>job_id</code>. Each job gets its own partition.
+Without this, a query for one job's events would scan millions of rows.</p>
+<p><strong>Watch out:</strong>
+- Partitions are created automatically when a job starts
+- <code>cleanup_jobs --days=90</code> drops old partitions
+- <strong>WITHOUT CLEANUP, THE DATABASE GROWS WITHOUT LIMIT</strong> — this is the most common cause of full disk in production</p>
+<hr />
+<h2 id="task-container-processes">Task Container Processes</h2>
+<p>The task container runs 4 processes through <code>supervisord</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Process</th>
+<th>What it does</th>
+<th>If it goes down...</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dispatcher</strong></td>
+<td>Receives tasks from Redis, starts jobs</td>
+<td>Jobs stay in <code>pending</code></td>
+</tr>
+<tr>
+<td><strong>Callback Receiver</strong></td>
+<td>Receives events from Ansible Runner</td>
+<td>Job output is empty</td>
+</tr>
+<tr>
+<td><strong>WSRelay</strong></td>
+<td>Sends events to WebSocket</td>
+<td>UI doesn't update in real-time</td>
+</tr>
+<tr>
+<td><strong>Receptor</strong></td>
+<td>Mesh networking for remote execution</td>
+<td>Remote jobs fail</td>
+</tr>
+</tbody>
+</table>
+<h3 id="checking-status">Checking status</h3>
+<div class="codehilite"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-task<span class="w"> </span>supervisorctl<span class="w"> </span>status
+<span class="c1"># All 4 processes must be RUNNING</span>
+</code></pre></div>
+
+<hr />
+<h2 id="execution-environments">Execution Environments</h2>
+<p>An Execution Environment (EE) is a container image that contains everything needed
+to run an Ansible playbook: Python, collections, modules, dependencies.</p>
+<h3 id="why-ee">Why EE?</h3>
+<p>Without an EE, the playbook uses Python and collections installed on the host. With an EE,
+the playbook runs inside an isolated container with a precisely defined environment.
+This guarantees reproducibility — the same playbook produces the same result regardless of the host.</p>
+<h3 id="watch-out_2">Watch out</h3>
+<ul>
+<li>Every job template can reference a specific EE</li>
+<li>The <code>pull</code> option controls when the image is pulled: <code>always</code>, <code>missing</code>, <code>never</code></li>
+<li>If the EE image doesn't exist locally and <code>pull=never</code>, the job will fail</li>
+</ul>
+<hr />
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="job-stuck-in-pending">Job stuck in "pending"</h3>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 1. Is the dispatcher running?</span>
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-task<span class="w"> </span>supervisorctl<span class="w"> </span>status<span class="w"> </span>dispatcher
+
+<span class="c1"># 2. Is Redis running?</span>
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-task<span class="w"> </span>redis-cli<span class="w"> </span>-h<span class="w"> </span>redis<span class="w"> </span>ping
+
+<span class="c1"># 3. How many tasks are waiting in the queue?</span>
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>redis<span class="w"> </span>redis-cli<span class="w"> </span>-n<span class="w"> </span><span class="m">0</span><span class="w"> </span>LLEN<span class="w"> </span>celery
+</code></pre></div>
+
+<h3 id="job-stuck-in-waiting">Job stuck in "waiting"</h3>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Check node capacity</span>
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-web<span class="w"> </span>awx-manage<span class="w"> </span>list_instances
+<span class="c1"># If remaining = 0, there&#39;s no free capacity</span>
+</code></pre></div>
+
+<h3 id="empty-job-output-no-events">Empty job output (no events)</h3>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Check callback receiver</span>
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-task<span class="w"> </span>supervisorctl<span class="w"> </span>status<span class="w"> </span>callback_receiver
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-task<span class="w"> </span>tail<span class="w"> </span>-f<span class="w"> </span>/var/log/supervisor/callback_receiver.log
+</code></pre></div>
+
+<h3 id="websocket-not-working-ui-not-updating">WebSocket not working (UI not updating)</h3>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Check wsrelay and daphne processes</span>
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-task<span class="w"> </span>supervisorctl<span class="w"> </span>status<span class="w"> </span>wsrelay
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-web<span class="w"> </span>supervisorctl<span class="w"> </span>status<span class="w"> </span>daphne
+
+<span class="c1"># Verify both containers have the same FORGE_BROADCAST_WEBSOCKET_SECRET</span>
+</code></pre></div>
+
+<h3 id="job-finishes-with-error-instead-of-failed">Job finishes with "error" instead of "failed"</h3>
+<p><code>error</code> means a system problem, not a playbook error. Check:
+- Can Ansible Runner access the project (SCM sync)?
+- Does the EE image exist?
+- Does the Receptor socket exist (<code>/var/run/awx-receptor/receptor.sock</code>)?
+- Logs: <code>docker compose logs forge-task | grep ERROR</code></p>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

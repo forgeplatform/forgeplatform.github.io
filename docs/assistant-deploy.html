@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Assistant Deployment — Forge Platform Docs</title>
+  <meta name="description" content="AI Assistant Deployment documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/assistant-deploy.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="deployment">Deployment</h1>
+<h2 id="standalone-deployment">Standalone Deployment</h2>
+<p>Run the assistant independently:</p>
+<div class="codehilite"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>forge-assistant
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+
+<p>This starts a <strong>single all-in-one container</strong> (<code>forge-assistant</code>) that bundles:
+- <strong>Ollama</strong> — LLM server (internal, port 11434)
+- <strong>ChromaDB</strong> — vector store (embedded, port 8000)
+- <strong>FastAPI</strong> — API server (exposed on port 8100)</p>
+<h3 id="first-time-setup">First-Time Setup</h3>
+<p>On first start, the entrypoint automatically pulls the LLM model (<code>gemma3:1b</code>) and embedding model (<code>nomic-embed-text</code>). Allow ~2 minutes for the initial model download.</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># 1. Start the container</span>
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+
+<span class="c1"># 2. Wait for health check to pass (start_period is 120s)</span>
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>forge-assistant
+
+<span class="c1"># 3. Index documentation</span>
+curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8100/api/v1/index
+
+<span class="c1"># 4. Verify</span>
+curl<span class="w"> </span>http://localhost:8100/api/v1/health
+</code></pre></div>
+
+<hr />
+<h2 id="integration-with-forge-platform">Integration with Forge Platform</h2>
+<h3 id="step-1-add-to-docker-compose">Step 1: Add to Docker Compose</h3>
+<p>In your <code>forge-deploy</code> directory:</p>
+<div class="codehilite"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>docker-compose.yml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span>/path/to/forge-assistant/docker-compose.integration.yml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>up<span class="w"> </span>-d
+</code></pre></div>
+
+<h3 id="step-2-configure-nginx">Step 2: Configure Nginx</h3>
+<p>Add to your Forge nginx configuration:</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># In forge-deploy/nginx/nginx.conf, inside the server block:</span>
+<span class="k">location</span><span class="w"> </span><span class="s">/assistant/</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kn">proxy_pass</span><span class="w"> </span><span class="s">http://forge-assistant:8100/</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">proxy_http_version</span><span class="w"> </span><span class="mi">1</span><span class="s">.1</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">Connection</span><span class="w"> </span><span class="s">&#39;&#39;</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">X-Real-IP</span><span class="w"> </span><span class="nv">$remote_addr</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">X-Forwarded-For</span><span class="w"> </span><span class="nv">$proxy_add_x_forwarded_for</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1"># SSE support</span>
+<span class="w">    </span><span class="kn">proxy_buffering</span><span class="w"> </span><span class="no">off</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">proxy_cache</span><span class="w"> </span><span class="no">off</span><span class="p">;</span>
+<span class="w">    </span><span class="kn">proxy_read_timeout</span><span class="w"> </span><span class="s">300s</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="step-3-frontend-detection">Step 3: Frontend Detection</h3>
+<p>The Forge frontend automatically detects the assistant by calling <code>/assistant/api/v1/health</code>. If the endpoint responds, the chat button appears in the UI.</p>
+<hr />
+<h2 id="gpu-support">GPU Support</h2>
+<p>For GPU-accelerated inference, uncomment the GPU section in <code>docker-compose.yml</code>:</p>
+<div class="codehilite"><pre><span></span><code><span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">forge-assistant</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">deploy</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">reservations</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">devices</span><span class="p">:</span>
+<span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">driver</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nvidia</span>
+<span class="w">              </span><span class="nt">count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">              </span><span class="nt">capabilities</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">gpu</span><span class="p p-Indicator">]</span>
+</code></pre></div>
+
+<p>Requirements:
+- NVIDIA GPU with 8+ GB VRAM
+- nvidia-container-toolkit installed on the host
+- Docker configured with nvidia runtime</p>
+<hr />
+<h2 id="cpu-only-deployment">CPU-Only Deployment</h2>
+<p>For servers without GPU, use a smaller model:</p>
+<div class="codehilite"><pre><span></span><code><span class="nv">FORGE_ASSISTANT_OLLAMA_MODEL</span><span class="o">=</span>phi3:mini<span class="w"> </span>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+
+<p>Response time will be 10-20 seconds instead of 2-5 seconds.</p>
+<hr />
+<h2 id="removing-the-assistant">Removing the Assistant</h2>
+<p>To remove the assistant from a running Forge deployment:</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Stop assistant service</span>
+docker<span class="w"> </span>compose<span class="w"> </span>-f<span class="w"> </span>docker-compose.yml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span>/path/to/forge-assistant/docker-compose.integration.yml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>down<span class="w"> </span>forge-assistant
+
+<span class="c1"># Or if running standalone</span>
+<span class="nb">cd</span><span class="w"> </span>forge-assistant<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>docker<span class="w"> </span>compose<span class="w"> </span>down<span class="w"> </span>-v
+</code></pre></div>
+
+<p>The Forge platform continues to work normally. The chat button disappears automatically when the health check fails.</p>
+<hr />
+<h2 id="backup-and-restore">Backup and Restore</h2>
+<p>All persistent data (ChromaDB + Ollama models) is stored in the <code>assistant_data</code> volume mounted at <code>/data</code>:</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Backup</span>
+docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-v<span class="w"> </span>forge-assistant_assistant_data:/data<span class="w"> </span>-v<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/backups:/backup<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>alpine<span class="w"> </span>tar<span class="w"> </span>czf<span class="w"> </span>/backup/assistant-data.tar.gz<span class="w"> </span>/data
+
+<span class="c1"># Restore</span>
+docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-v<span class="w"> </span>forge-assistant_assistant_data:/data<span class="w"> </span>-v<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/backups:/backup<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>alpine<span class="w"> </span>tar<span class="w"> </span>xzf<span class="w"> </span>/backup/assistant-data.tar.gz<span class="w"> </span>-C<span class="w"> </span>/
+</code></pre></div>
+
+<blockquote>
+<p><strong>Tip:</strong> Re-indexing docs (<code>curl -X POST http://localhost:8100/api/v1/index?rebuild=true</code>) is fast and often easier than restoring ChromaDB data. Model re-download is automatic on first start if models are missing.</p>
+</blockquote>
+<hr />
+<h2 id="cicd-pipeline">CI/CD Pipeline</h2>
+<p>The included <code>Jenkinsfile</code> provides a complete pipeline:</p>
+<ol>
+<li><strong>Lint</strong> — ruff check on Python code</li>
+<li><strong>Test</strong> — pytest with JUnit XML reporting</li>
+<li><strong>Build</strong> — Docker image build</li>
+<li><strong>Scan</strong> — Trivy container vulnerability scan</li>
+<li><strong>Push</strong> — Push to Harbor registry (main branch only)</li>
+<li><strong>Deploy</strong> — SSH deploy to production (main branch only)</li>
+</ol>
+<p>Tests must pass before any image is built or pushed.</p>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

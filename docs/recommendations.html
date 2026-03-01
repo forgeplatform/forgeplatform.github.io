@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recommendations Engine — Forge Platform Docs</title>
+  <meta name="description" content="Recommendations Engine documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/recommendations.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="23-recommendations-engine">23 — Recommendations Engine</h1>
+<p><strong>Tier 3.7 — NEW</strong></p>
+<p>Forge Platform ships a <strong>rule-based recommendations engine</strong> that surfaces
+actionable, scope-aware hints about platform health. Recommendations appear on
+the Dashboard and inside each wizard, and are designed to nudge operators
+toward best practices ("you have job templates but no IaC scanners",
+"the admin user is still using the default password") without ever blocking
+their work.</p>
+<p>Everything is read-only and stateless. The engine has no Django models, no
+migrations, and no DB tables of its own — it computes its results live from
+existing tables, with a 60-second in-memory cache to keep the cost negligible.</p>
+<hr />
+<h2 id="scope-v1">Scope (v1)</h2>
+<p><strong>In:</strong></p>
+<ul>
+<li>12 built-in rules covering compliance, tenancy, observability, automation,
+  self-service, access, and security.</li>
+<li>Single read-only HTTP endpoint: <code>GET /api/v2/recommendations/?scope=&lt;scope&gt;</code>.</li>
+<li>8 scopes: <code>dashboard</code>, <code>automation</code>, <code>self_service</code>, <code>tenancy</code>, <code>compliance</code>,
+  <code>resources</code>, <code>access</code>, <code>all</code>.</li>
+<li>3 severity levels: <code>critical</code>, <code>warn</code>, <code>info</code> (sorted critical → info).</li>
+<li>60-second in-memory cache to amortise the cost of context aggregation.</li>
+<li>Pure-Python module (no Django app) so the rules are unit-testable in
+  isolation against a fake <code>RuleContext</code>.</li>
+<li>17 standalone test classes covering every rule plus the evaluator.</li>
+</ul>
+<p><strong>Out (deferred):</strong></p>
+<ul>
+<li>Persistent dismissals (today the UI dismisses locally only).</li>
+<li>Per-user / per-org filtering of which rules apply.</li>
+<li>Custom user-defined rules.</li>
+<li>Webhook delivery of new criticals.</li>
+<li>Persistent recommendation history / metrics.</li>
+</ul>
+<hr />
+<h2 id="module-layout">Module Layout</h2>
+<div class="codehilite"><pre><span></span><code><span class="n">forge</span><span class="o">/</span><span class="n">main</span><span class="o">/</span><span class="n">recommendations</span><span class="o">/</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">__init__</span><span class="o">.</span><span class="n">py</span><span class="w">        </span><span class="c1"># public exports: build_context, evaluate, Recommendation</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">types</span><span class="o">.</span><span class="n">py</span><span class="w">           </span><span class="c1"># @dataclass RuleContext, Recommendation</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">rules</span><span class="o">.</span><span class="n">py</span><span class="w">           </span><span class="c1"># 12 pure rule functions</span>
+<span class="err">└──</span><span class="w"> </span><span class="n">engine</span><span class="o">.</span><span class="n">py</span><span class="w">          </span><span class="c1"># build_context() + evaluate() + 60s cache</span>
+
+<span class="n">forge</span><span class="o">/</span><span class="n">api</span><span class="o">/</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">views</span><span class="o">/</span><span class="n">recommendations</span><span class="o">.</span><span class="n">py</span><span class="w">        </span><span class="c1"># RecommendationsList APIView</span>
+<span class="err">├──</span><span class="w"> </span><span class="n">serializers</span><span class="o">/</span><span class="n">recommendations</span><span class="o">.</span><span class="n">py</span><span class="w">  </span><span class="c1"># RecommendationSerializer</span>
+<span class="err">└──</span><span class="w"> </span><span class="n">urls</span><span class="o">/</span><span class="n">recommendations</span><span class="o">.</span><span class="n">py</span><span class="w">         </span><span class="c1"># urlpatterns</span>
+
+<span class="n">tests_standalone</span><span class="o">/</span>
+<span class="err">└──</span><span class="w"> </span><span class="n">test_recommendations</span><span class="o">.</span><span class="n">py</span><span class="w">         </span><span class="c1"># 17 test classes</span>
+</code></pre></div>
+
+<p>The module is <strong>not</strong> a Django app — it has no <code>apps.py</code>, no <code>models.py</code>, no
+migrations, and is <strong>not</strong> registered in <code>INSTALLED_APPS</code>. Its URL include is
+wired directly from <code>forge/api/urls/urls.py</code>.</p>
+<hr />
+<h2 id="data-types">Data Types</h2>
+<h3 id="rulecontext"><code>RuleContext</code></h3>
+<p>A frozen aggregation of everything the rules need. Built once per request (or
+once per minute when the cache is warm) by <code>build_context()</code>, which runs
+defensive lazy queries against the existing tables.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scanners_enabled_count</code></td>
+<td><code>int</code></td>
+<td><code>Scanner.objects.filter(enabled=True).count()</code></td>
+</tr>
+<tr>
+<td><code>policies_total</code></td>
+<td><code>int</code></td>
+<td><code>Policy.objects.count()</code></td>
+</tr>
+<tr>
+<td><code>policies_enforce_count</code></td>
+<td><code>int</code></td>
+<td><code>Policy.objects.filter(mode='enforce').count()</code></td>
+</tr>
+<tr>
+<td><code>organizations_total</code></td>
+<td><code>int</code></td>
+<td><code>Organization.objects.count()</code></td>
+</tr>
+<tr>
+<td><code>tenancy_enabled</code></td>
+<td><code>bool</code></td>
+<td><code>settings.TENANCY_ENABLED</code></td>
+</tr>
+<tr>
+<td><code>otel_enabled</code></td>
+<td><code>bool</code></td>
+<td><code>settings.OTEL_ENABLED</code></td>
+</tr>
+<tr>
+<td><code>job_templates_total</code></td>
+<td><code>int</code></td>
+<td><code>JobTemplate.objects.count()</code></td>
+</tr>
+<tr>
+<td><code>schedules_total</code></td>
+<td><code>int</code></td>
+<td><code>Schedule.objects.count()</code></td>
+</tr>
+<tr>
+<td><code>catalog_items_total</code></td>
+<td><code>int</code></td>
+<td><code>CatalogItem.objects.count()</code></td>
+</tr>
+<tr>
+<td><code>surveys_total</code></td>
+<td><code>int</code></td>
+<td><code>JobTemplate.objects.exclude(survey_spec=None).count()</code></td>
+</tr>
+<tr>
+<td><code>drift_detections_total</code></td>
+<td><code>int</code></td>
+<td><code>DriftDetection.objects.count()</code></td>
+</tr>
+<tr>
+<td><code>projects</code></td>
+<td><code>list[(name, last_sync)]</code></td>
+<td><code>Project.objects.values_list('name', 'last_update_failed')</code></td>
+</tr>
+<tr>
+<td><code>tenant_usage</code></td>
+<td><code>list[(name, quota_pct)]</code></td>
+<td><code>TenantUsage</code> aggregate</td>
+</tr>
+<tr>
+<td><code>teams_count</code></td>
+<td><code>int</code></td>
+<td><code>Team.objects.count()</code></td>
+</tr>
+<tr>
+<td><code>admin_default_password</code></td>
+<td><code>bool</code></td>
+<td><code>User.check_password('password')</code> for admin</td>
+</tr>
+</tbody>
+</table>
+<p>Each query is wrapped in <code>try/except</code> so a missing table (e.g. recommendations
+on a fresh install before migrations finish) returns a zero/false value instead
+of crashing.</p>
+<h3 id="recommendation"><code>Recommendation</code></h3>
+<div class="codehilite"><pre><span></span><code><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">Recommendation</span><span class="p">:</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>           <span class="c1"># unique stable id, e.g. &#39;no_scanners&#39;</span>
+    <span class="n">scope</span><span class="p">:</span> <span class="nb">str</span>        <span class="c1"># one of the 8 scopes</span>
+    <span class="n">severity</span><span class="p">:</span> <span class="nb">str</span>     <span class="c1"># &#39;critical&#39; | &#39;warn&#39; | &#39;info&#39;</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span>        <span class="c1"># human title</span>
+    <span class="n">why</span><span class="p">:</span> <span class="nb">str</span>          <span class="c1"># human explanation, 1–2 sentences</span>
+    <span class="n">action_link</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># frontend route the UI button should open</span>
+</code></pre></div>
+
+<hr />
+<h2 id="the-12-rules">The 12 Rules</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Scope</th>
+<th>Severity</th>
+<th>Triggers when…</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>default_admin_password</code></td>
+<td><code>dashboard</code></td>
+<td><strong>critical</strong></td>
+<td>The bootstrap <code>admin</code> user still has the seed password</td>
+</tr>
+<tr>
+<td><code>no_scanners</code></td>
+<td><code>compliance</code></td>
+<td>warn</td>
+<td>At least one job template exists but no enabled scanners</td>
+</tr>
+<tr>
+<td><code>multi_org_no_tenancy</code></td>
+<td><code>tenancy</code></td>
+<td>warn</td>
+<td>More than one Organization but <code>TENANCY_ENABLED=False</code></td>
+</tr>
+<tr>
+<td><code>tenant_near_quota</code></td>
+<td><code>tenancy</code></td>
+<td>warn</td>
+<td>Any tenant is using &gt; 80% of any quota</td>
+</tr>
+<tr>
+<td><code>all_policies_warn</code></td>
+<td><code>compliance</code></td>
+<td>info</td>
+<td>At least one policy exists but none are in <code>enforce</code> mode</td>
+</tr>
+<tr>
+<td><code>no_observability</code></td>
+<td><code>dashboard</code></td>
+<td>info</td>
+<td><code>OTEL_ENABLED=False</code></td>
+</tr>
+<tr>
+<td><code>stale_project</code></td>
+<td><code>automation</code></td>
+<td>info</td>
+<td>Any Project has not synced in 14+ days</td>
+</tr>
+<tr>
+<td><code>no_schedules</code></td>
+<td><code>automation</code></td>
+<td>info</td>
+<td>Job templates exist but no Schedules are configured</td>
+</tr>
+<tr>
+<td><code>no_drift</code></td>
+<td><code>compliance</code></td>
+<td>info</td>
+<td>Job templates exist but no DriftDetections configured</td>
+</tr>
+<tr>
+<td><code>few_surveys</code></td>
+<td><code>self_service</code></td>
+<td>info</td>
+<td>Less than 50% of templates expose a survey</td>
+</tr>
+<tr>
+<td><code>no_catalog_items</code></td>
+<td><code>self_service</code></td>
+<td>info</td>
+<td>Job templates exist but the Service Catalog is empty</td>
+</tr>
+<tr>
+<td><code>only_default_team</code></td>
+<td><code>access</code></td>
+<td>info</td>
+<td>Only the seed Team exists</td>
+</tr>
+</tbody>
+</table>
+<p>Each rule is a pure function <code>(ctx: RuleContext) -&gt; Recommendation | None</code>.
+A rule that raises an exception is silently dropped — the engine never returns
+a partial error to the API.</p>
+<hr />
+<h2 id="http-api">HTTP API</h2>
+<h3 id="get-apiv2recommendations"><code>GET /api/v2/recommendations/</code></h3>
+<p><strong>Auth:</strong> <code>IsAuthenticated</code> (any logged-in user can read).</p>
+<p><strong>Query parameters</strong></p>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scope</code></td>
+<td><code>str</code></td>
+<td><code>all</code></td>
+<td>Filter by scope. One of: <code>all</code>, <code>dashboard</code>, <code>automation</code>, <code>self_service</code>, <code>tenancy</code>, <code>compliance</code>, <code>resources</code>, <code>access</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Response 200</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;results&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;default_admin_password&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;scope&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dashboard&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;severity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;critical&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Default admin password in use&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;why&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;The admin user is still using the default password. Change it immediately to secure your installation.&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;action_link&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/users&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;multi_org_no_tenancy&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;scope&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tenancy&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;severity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;warn&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Multiple organizations without tenancy&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;why&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;You have more than one organization but tenancy is disabled. Enable tenancy to enforce quotas and isolation.&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;action_link&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/wizards/tenancy&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;no_observability&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;scope&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;dashboard&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;severity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;info&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Observability is not enabled&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;why&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;OpenTelemetry exporters are off. Enable them to get traces, metrics, and logs flowing to your backend.&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;action_link&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/wizards/observability&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>Results are always sorted <strong>critical → warn → info</strong>, with stable ordering
+inside each severity bucket (the order in which the rule is registered).</p>
+<h3 id="examples">Examples</h3>
+<p><strong>All recommendations</strong></p>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-s<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>https://forge.example.com/api/v2/recommendations/
+</code></pre></div>
+
+<p><strong>Only compliance</strong></p>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-s<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">&quot;https://forge.example.com/api/v2/recommendations/?scope=compliance&quot;</span>
+</code></pre></div>
+
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;results&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;no_scanners&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;scope&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;compliance&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;severity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;warn&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;No IaC scanners configured&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;why&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;You have job templates but no IaC scanners. Enable scanning to catch unsafe playbooks before they run.&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;action_link&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/wizards/compliance&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>Only tenancy</strong></p>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-s<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer </span><span class="nv">$TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">&quot;https://forge.example.com/api/v2/recommendations/?scope=tenancy&quot;</span>
+</code></pre></div>
+
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;results&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;multi_org_no_tenancy&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;scope&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tenancy&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;severity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;warn&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Multiple organizations without tenancy&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;why&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;You have more than one organization but tenancy is disabled. Enable tenancy to enforce quotas and isolation.&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;action_link&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/wizards/tenancy&quot;</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tenant_near_quota&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;scope&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;tenancy&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;severity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;warn&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Tenant near concurrent-job quota&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;why&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Tenant \&quot;production-1\&quot; is using 92% of its concurrent job limit. Consider raising the quota.&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;action_link&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/tenants&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><strong>Empty result</strong></p>
+<p>When nothing matches (best case — your platform is healthy), the API returns:</p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span><span class="w"> </span><span class="nt">&quot;count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;results&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+
+<hr />
+<h2 id="caching">Caching</h2>
+<p><code>build_context()</code> is wrapped in a 60-second TTL memoizer. The cache key is
+constant (process-local), so:</p>
+<ul>
+<li>The first request after a cold start pays the full DB cost (~10–15 ms with
+  realistic data).</li>
+<li>Subsequent requests within 60 s are essentially free (microseconds).</li>
+<li>The cache is per-process; in a multi-worker uWSGI deployment each worker
+  warms its own cache.</li>
+</ul>
+<p>This is intentional. There is no cross-process invalidation because
+recommendations are not load-bearing — being 60 s stale is fine.</p>
+<p>To bypass the cache (for tests), call <code>build_context(_cache_bust=True)</code>.</p>
+<hr />
+<h2 id="severity-ui-mapping">Severity → UI Mapping</h2>
+<p>The frontend uses these conventions; rules should pick severity to match the
+intended urgency.</p>
+<table>
+<thead>
+<tr>
+<th>Severity</th>
+<th>When to use</th>
+<th>UI treatment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>critical</code></td>
+<td>Active security or data-loss risk</td>
+<td>Red badge, stays at the top, never auto-dismissable</td>
+</tr>
+<tr>
+<td><code>warn</code></td>
+<td>Best-practice violation that will bite later</td>
+<td>Amber badge, dismissible per session</td>
+</tr>
+<tr>
+<td><code>info</code></td>
+<td>Tip or suggestion</td>
+<td>Blue badge, dismissible per session</td>
+</tr>
+</tbody>
+</table>
+<p>Today only <code>default_admin_password</code> is <code>critical</code>. Adding new criticals should
+require explicit review — they cannot be silenced from the UI.</p>
+<hr />
+<h2 id="frontend-integration">Frontend Integration</h2>
+<p>The frontend hits the endpoint via TanStack Query in
+<code>src/api/hooks/useRecommendations.ts</code>. Two consumers:</p>
+<ol>
+<li><strong>Dashboard banner</strong> (<code>src/pages/Dashboard.tsx</code>) — calls
+   <code>useRecommendations('dashboard')</code>, displays the top 5 in a Getting Started
+   card and groups the rest by severity.</li>
+<li><strong>Wizard panel</strong> (<code>src/components/wizard/RecommendationsPanel.tsx</code>) — every
+   wizard renders this panel at the top of its content area, scoped to that
+   wizard's domain (e.g. <code>useRecommendations('compliance')</code> inside the
+   ComplianceWizard).</li>
+</ol>
+<p>Both consumers refetch every 60 seconds via TanStack's <code>refetchInterval</code>,
+matching the backend cache TTL.</p>
+<hr />
+<h2 id="adding-a-new-rule">Adding a New Rule</h2>
+<ol>
+<li>Edit <code>forge/main/recommendations/rules.py</code>. Add a function:</li>
+</ol>
+<p><code>python
+   def rule_my_new_check(ctx: RuleContext) -&gt; Recommendation | None:
+       if not &lt;my condition&gt;:
+           return None
+       return Recommendation(
+           id='my_new_check',
+           scope='compliance',
+           severity='warn',
+           title='Short, action-oriented title',
+           why='One or two sentences explaining why this matters.',
+           action_link='/wherever',
+       )</code></p>
+<ol>
+<li>Register it in the <code>ALL_RULES</code> list at the bottom of the same file.</li>
+<li>If your rule needs new context data, add a field to <code>RuleContext</code> in
+   <code>types.py</code> and populate it in <code>engine.build_context()</code>.</li>
+<li>Add a unit test in <code>tests_standalone/test_recommendations.py</code>. At minimum
+   cover <strong>trigger</strong> and <strong>non-trigger</strong> cases.</li>
+<li>Run the tests:
+   <code>bash
+   pytest tests_standalone/test_recommendations.py -v</code></li>
+<li>(Optional) add an <code>i18n</code> key on the frontend if the title/why should be
+   translated rather than served verbatim.</li>
+</ol>
+<hr />
+<h2 id="testing">Testing</h2>
+<p>Standalone (no Django):</p>
+<div class="codehilite"><pre><span></span><code>pytest<span class="w"> </span>tests_standalone/test_recommendations.py
+</code></pre></div>
+
+<p>The 17 test classes cover every rule plus the evaluator (severity sort, scope
+filter, exception swallowing, empty context). Because the rules take a plain
+dataclass, no fixtures, no DB, no Django setup is required — the entire suite
+runs in well under a second.</p>
+<hr />
+<h2 id="operational-notes">Operational Notes</h2>
+<ul>
+<li><strong>Cost:</strong> ~10 ms cold, microseconds warm. Safe to call every page load.</li>
+<li><strong>Failure mode:</strong> the endpoint never 500s on rule errors — failed rules are
+  dropped, working rules still return.</li>
+<li><strong>Permissions:</strong> any authenticated user. There is intentionally no per-user
+  filtering — recommendations describe platform-wide state.</li>
+<li><strong>Telemetry:</strong> the endpoint emits an OpenTelemetry span
+  (<code>recommendations.evaluate</code>) with <code>scope</code> and <code>count</code> attributes when OTel
+  is enabled (see <a href="21-observability.md">21 — Observability</a>).</li>
+<li><strong>Disable globally:</strong> there is no kill switch in v1. If you need to hide the
+  feature, add <code>DISABLE_RECOMMENDATIONS=True</code> to settings and short-circuit
+  the view — out of scope for v1.</li>
+</ul>
+<hr />
+<h2 id="roadmap">Roadmap</h2>
+<ul>
+<li><strong>v1.1</strong> — persistent dismissals (<code>POST /api/v2/recommendations/&lt;id&gt;/dismiss/</code>)</li>
+<li><strong>v1.2</strong> — user-defined rules via Rego or YAML DSL</li>
+<li><strong>v1.3</strong> — webhook delivery of new criticals</li>
+<li><strong>v1.4</strong> — recommendation history with timestamps for trending</li>
+</ul>
+<hr />
+<h2 id="see-also">See Also</h2>
+<ul>
+<li><a href="16-drift-detection.md">16 — Drift Detection</a> — feeds <code>no_drift</code> and adjacent rules</li>
+<li><a href="19-policy-as-code.md">19 — Policy-as-Code</a> — feeds <code>all_policies_warn</code></li>
+<li><a href="20-iac-scanning.md">20 — IaC Scanning</a> — feeds <code>no_scanners</code></li>
+<li><a href="22-multi-tenancy.md">22 — Multi-Tenancy</a> — feeds <code>multi_org_no_tenancy</code>, <code>tenant_near_quota</code></li>
+<li><a href="../../forge-deploy/docs/HANDBOOK.md#dashboard">User Handbook → Dashboard</a> — where the UI surfaces these</li>
+</ul>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

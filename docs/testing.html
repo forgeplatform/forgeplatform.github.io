@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Testing Guide — Forge Platform Docs</title>
+  <meta name="description" content="Testing Guide documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/testing.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="09-testing-guide">09 — Testing Guide</h1>
+<p>How to run tests, what to test, and where tests live.</p>
+<hr />
+<h2 id="test-suite-overview">Test Suite Overview</h2>
+<table>
+<thead>
+<tr>
+<th>Suite</th>
+<th>Tool</th>
+<th>Count</th>
+<th>Location</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python unit</td>
+<td>pytest</td>
+<td>1083</td>
+<td><code>forge/main/tests/unit/</code></td>
+</tr>
+<tr>
+<td>Python functional (API)</td>
+<td>pytest</td>
+<td>989</td>
+<td><code>forge/main/tests/functional/</code></td>
+</tr>
+<tr>
+<td>Standalone (EDA, drift, service catalog, webauthn, policy, scanner, audit)</td>
+<td>unittest</td>
+<td>154+</td>
+<td><code>tests_standalone/</code></td>
+</tr>
+<tr>
+<td>Frontend</td>
+<td>vitest</td>
+<td>72+</td>
+<td><code>forge/ui_next/src/**/*.test.{ts,tsx}</code></td>
+</tr>
+<tr>
+<td>Python lint</td>
+<td>flake8</td>
+<td>—</td>
+<td><code>forge/</code></td>
+</tr>
+<tr>
+<td>Frontend lint</td>
+<td>TypeScript</td>
+<td>—</td>
+<td><code>forge/ui_next/src/</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="standalone-tests-no-django-required">Standalone Tests (no Django required)</h3>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Run EDA tests (condition engine, HMAC, throttling, dedup)</span>
+python<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>tests_standalone.test_eda<span class="w"> </span>-v
+
+<span class="c1"># Run drift detection tests (compute_drift, hashing, classification, severity)</span>
+python<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>tests_standalone.test_drift<span class="w"> </span>-v
+
+<span class="c1"># Run Self-Service Portal lifecycle tests (submit/approve/reject/sync)</span>
+python<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>tests_standalone.test_service_catalog<span class="w"> </span>-v
+
+<span class="c1"># Run WebAuthn pure-logic tests (policy resolver, replay guard, helpers)</span>
+python<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>tests_standalone.test_webauthn<span class="w"> </span>-v
+
+<span class="c1"># Run Policy-as-Code (OPA) tests (enforcement matrix, fail-mode, parse_decision)</span>
+python<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>tests_standalone.test_policy<span class="w"> </span>-v
+
+<span class="c1"># Run IaC scanner tests (severity ordering, enforcement, aggregate_status,</span>
+<span class="c1"># fail_mode_decision, ansible-lint / checkov / pip-audit adapter parsers)</span>
+python<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>tests_standalone.test_scanner<span class="w"> </span>-v
+
+<span class="c1"># Run Observability tests (OTel helpers: resource attribute parser, sampler</span>
+<span class="c1"># ratio validation, endpoint parsing, grpc/http detection, cached health</span>
+<span class="c1"># aggregation)</span>
+python<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>tests_standalone.test_observability<span class="w"> </span>-v
+
+<span class="c1"># Run Multi-Tenancy tests (quota helpers, window rollover, branding host</span>
+<span class="c1"># normalization, hex color validation, QuotaResult aggregation, provisioning</span>
+<span class="c1"># payload validation)</span>
+python<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>tests_standalone.test_tenancy<span class="w"> </span>-v
+
+<span class="c1"># Run all standalone tests</span>
+python<span class="w"> </span>-m<span class="w"> </span>unittest<span class="w"> </span>discover<span class="w"> </span>tests_standalone<span class="w"> </span>-v
+</code></pre></div>
+
+<hr />
+<h2 id="running-backend-tests">Running Backend Tests</h2>
+<h3 id="inside-vagrant-vm-recommended">Inside Vagrant VM (recommended)</h3>
+<div class="codehilite"><pre><span></span><code>vagrant<span class="w"> </span>ssh
+<span class="nb">cd</span><span class="w"> </span>/awx_devel
+
+<span class="c1"># All unit tests</span>
+docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-v<span class="w"> </span>/awx_devel:/awx_devel<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">DJANGO_SETTINGS_MODULE</span><span class="o">=</span>forge.settings.defaults<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--network<span class="w"> </span>docker-compose-prod_forge<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--user<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>forge-platform/forge:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;pip install pytest pytest-django pytest-mock drf-yasg -q &amp;&amp; \</span>
+<span class="s2">    cd /awx_devel &amp;&amp; python -m pytest forge/main/tests/unit/ -q&quot;</span>
+</code></pre></div>
+
+<h3 id="useful-pytest-flags">Useful pytest flags</h3>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-q</code></td>
+<td>Quiet output (just pass/fail counts)</td>
+</tr>
+<tr>
+<td><code>-v</code></td>
+<td>Verbose (show each test name)</td>
+</tr>
+<tr>
+<td><code>-x</code></td>
+<td>Stop on first failure</td>
+</tr>
+<tr>
+<td><code>-k "pattern"</code></td>
+<td>Run only tests matching a pattern</td>
+</tr>
+<tr>
+<td><code>--lf</code></td>
+<td>Run only tests that failed last time</td>
+</tr>
+<tr>
+<td><code>--tb=short</code></td>
+<td>Short tracebacks</td>
+</tr>
+<tr>
+<td><code>-s</code></td>
+<td>Show print() output</td>
+</tr>
+</tbody>
+</table>
+<h3 id="examples">Examples</h3>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Only tests related to jobs</span>
+python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>forge/main/tests/unit/<span class="w"> </span>-k<span class="w"> </span><span class="s2">&quot;test_job&quot;</span><span class="w"> </span>-v
+
+<span class="c1"># Only one file</span>
+python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>forge/main/tests/unit/test_models.py<span class="w"> </span>-v
+
+<span class="c1"># Stop on first failure with full traceback</span>
+python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>forge/main/tests/unit/<span class="w"> </span>-x<span class="w"> </span>--tb<span class="o">=</span>long
+</code></pre></div>
+
+<hr />
+<h2 id="running-frontend-tests">Running Frontend Tests</h2>
+<div class="codehilite"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>forge/ui_next
+npm<span class="w"> </span>ci<span class="w">              </span><span class="c1"># Install dependencies (first time)</span>
+npm<span class="w"> </span><span class="nb">test</span><span class="w">            </span><span class="c1"># Run all tests</span>
+npm<span class="w"> </span>run<span class="w"> </span>test:watch<span class="w">  </span><span class="c1"># Watch mode — re-run on changes</span>
+</code></pre></div>
+
+<h3 id="specific-file">Specific file</h3>
+<div class="codehilite"><pre><span></span><code>npx<span class="w"> </span>vitest<span class="w"> </span>run<span class="w"> </span>src/stores/auth.test.ts
+npx<span class="w"> </span>vitest<span class="w"> </span>run<span class="w"> </span>--reporter<span class="o">=</span>verbose
+</code></pre></div>
+
+<hr />
+<h2 id="where-tests-live">Where Tests Live</h2>
+<h3 id="backend">Backend</h3>
+<div class="codehilite"><pre><span></span><code>forge/main/tests/
+├── unit/                       # Pure unit tests (fast, no database)
+│   ├── test_models.py
+│   ├── test_tasks.py
+│   ├── test_access.py          # RBAC permissions
+│   ├── test_validators.py
+│   └── ...
+├── functional/                 # API tests (with database, HTTP requests)
+│   ├── test_job_templates.py
+│   ├── test_inventories.py
+│   ├── test_credentials.py
+│   ├── test_rbac.py
+│   └── ...
+└── conftest.py                 # Shared fixtures
+</code></pre></div>
+
+<h3 id="frontend">Frontend</h3>
+<p>Tests live alongside the components they test:</p>
+<div class="codehilite"><pre><span></span><code><span class="nv">src</span><span class="o">/</span>
+├──<span class="w"> </span><span class="nv">stores</span><span class="o">/</span><span class="nv">auth</span>.<span class="nv">test</span>.<span class="nv">ts</span><span class="w">         </span>#<span class="w"> </span><span class="nv">Test</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="nv">auth</span><span class="w"> </span><span class="nv">store</span>
+├──<span class="w"> </span><span class="nv">stores</span><span class="o">/</span><span class="nv">theme</span>.<span class="nv">test</span>.<span class="nv">ts</span><span class="w">        </span>#<span class="w"> </span><span class="nv">Test</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="nv">theme</span><span class="w"> </span><span class="nv">store</span>
+├──<span class="w"> </span><span class="nv">lib</span><span class="o">/</span><span class="nv">utils</span>.<span class="nv">test</span>.<span class="nv">ts</span><span class="w">           </span>#<span class="w"> </span><span class="nv">Test</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="nv">utility</span><span class="w"> </span><span class="nv">functions</span>
+├──<span class="w"> </span><span class="nv">lib</span><span class="o">/</span><span class="nv">statusConfig</span>.<span class="nv">test</span>.<span class="nv">ts</span>
+├──<span class="w"> </span><span class="nv">components</span><span class="o">/</span>
+│<span class="w">   </span>├──<span class="w"> </span><span class="nv">ErrorBoundary</span>.<span class="nv">test</span>.<span class="nv">tsx</span>
+│<span class="w">   </span>└──<span class="w"> </span><span class="nv">ui</span><span class="o">/</span>
+│<span class="w">       </span>├──<span class="w"> </span><span class="nv">badge</span>.<span class="nv">test</span>.<span class="nv">tsx</span>
+│<span class="w">       </span>└──<span class="w"> </span><span class="nv">button</span>.<span class="nv">test</span>.<span class="nv">tsx</span>
+</code></pre></div>
+
+<hr />
+<h2 id="what-to-test">What to Test</h2>
+<h3 id="when-adding-a-new-feature">When adding a new feature</h3>
+<ul>
+<li><strong>Model:</strong> Validation, computed fields, custom methods</li>
+<li><strong>API:</strong> CRUD operations, permissions (admin vs regular user vs outsider)</li>
+<li><strong>Frontend:</strong> Component renders, user can interact, error states</li>
+</ul>
+<h3 id="when-fixing-a-bug">When fixing a bug</h3>
+<ul>
+<li>Write a <strong>regression test</strong> that reproduces the bug before the fix</li>
+<li>The test must fail without the fix and pass with it</li>
+</ul>
+<h3 id="what-not-to-test">What NOT to test</h3>
+<ul>
+<li>Django/DRF internals (already tested)</li>
+<li>Trivial getter/setter methods</li>
+<li>CSS styling</li>
+</ul>
+<hr />
+<h2 id="coverage">Coverage</h2>
+<h3 id="python">Python</h3>
+<div class="codehilite"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>pytest-cov
+python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>forge/main/tests/unit/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--cov<span class="o">=</span>forge<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--cov-report<span class="o">=</span>term-missing<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--cov-report<span class="o">=</span>html:htmlcov/
+</code></pre></div>
+
+<h3 id="frontend_1">Frontend</h3>
+<div class="codehilite"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>forge/ui_next
+npx<span class="w"> </span>vitest<span class="w"> </span>run<span class="w"> </span>--coverage
+<span class="c1"># Output: coverage/index.html</span>
+</code></pre></div>
+
+<hr />
+<h2 id="watch-out">Watch Out</h2>
+<ol>
+<li>
+<p><strong>Tests use <code>forge.settings.defaults</code></strong>, not production settings.
+   If a test passes locally but fails in CI, check if it depends on a
+   production-only setting.</p>
+</li>
+<li>
+<p><strong>Functional tests use a real database.</strong> Each test runs in a transaction
+   that is rolled back at the end. But if a test explicitly commits (uses
+   <code>transaction.on_commit</code>), data may persist — watch for that.</p>
+</li>
+<li>
+<p><strong>Frontend tests use jsdom</strong> (a simulated browser). If you're testing something
+   that depends on the real DOM (scroll, resize, canvas), use Playwright
+   or Cypress instead of vitest.</p>
+</li>
+<li>
+<p><strong>Fixtures in <code>conftest.py</code></strong> — use them for creating test data
+   (organization, project, inventory, credentials, templates). Don't repeat
+   setup in every test.</p>
+</li>
+</ol>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IaC Scanning — Forge Platform Docs</title>
+  <meta name="description" content="IaC Scanning documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/iac-scanning.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="20-iac-scanning-supply-chain-security">20 — IaC Scanning &amp; Supply Chain Security</h1>
+<p>Content-level static analysis of playbooks and Python requirements at
+launch time. Where Policy-as-Code (doc 19) reasons about <strong>metadata</strong>
+(who is launching what against which inventory), the scanner reasons
+about what is <strong>inside</strong> the playbook: <code>shell:</code> with unquoted variables,
+unpinned role sources, hard-coded secrets, Python dependencies with
+known CVEs.</p>
+<p>Three open-source CLIs run as subprocesses out of the forge venv:</p>
+<ul>
+<li><strong>ansible-lint</strong> — Ansible rules catalog (MIT)</li>
+<li><strong>checkov</strong> — multi-IaC scanner incl. Ansible (Apache 2.0)</li>
+<li><strong>pip-audit</strong> — Python CVEs via OSV (Apache 2.0, PyPA)</li>
+</ul>
+<p>The hook fires on <code>JobTemplateLaunch</code>, <code>WorkflowJobTemplateLaunch</code> and
+<code>AdHocCommandList.create</code>, <strong>after</strong> the Policy-as-Code hook so policy
+denials short-circuit before we spend CPU on a scan.</p>
+<hr />
+<h2 id="architecture">Architecture</h2>
+<div class="codehilite"><pre><span></span><code><span class="w">  </span><span class="n">Launch</span><span class="w"> </span><span class="k">view</span><span class="w">                                      </span><span class="n">Scanner</span><span class="w"> </span><span class="n">model</span><span class="w"> </span><span class="k">rows</span>
+<span class="w">  </span><span class="err">───────────</span><span class="w">                                      </span><span class="err">──────────────────</span>
+<span class="w">  </span><span class="n">create_unified_job</span><span class="p">()</span>
+<span class="w">         </span><span class="err">│</span>
+<span class="w">         </span><span class="err">▼</span>
+<span class="w">  </span><span class="n">evaluate_launch</span><span class="p">()</span><span class="w">   </span><span class="err">←</span><span class="w"> </span><span class="n">policy</span><span class="w"> </span><span class="p">(</span><span class="n">doc</span><span class="w"> </span><span class="mi">19</span><span class="p">)</span>
+<span class="w">         </span><span class="err">│</span>
+<span class="w">         </span><span class="err">▼</span>
+<span class="w">  </span><span class="n">run_scanners_for_launch</span><span class="p">(</span><span class="n">unified_job</span><span class="p">,</span><span class="w"> </span><span class="n">request</span><span class="p">)</span>
+<span class="w">         </span><span class="err">│</span>
+<span class="w">         </span><span class="err">│</span><span class="w">  </span><span class="k">For</span><span class="w"> </span><span class="k">each</span><span class="w"> </span><span class="n">Scanner</span><span class="w"> </span><span class="n">enabled</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">applies_to</span><span class="w"> </span><span class="k">match</span><span class="err">:</span>
+<span class="w">         </span><span class="err">│</span><span class="w">    </span><span class="n">resolve</span><span class="w"> </span><span class="n">project_path</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">target</span><span class="w"> </span><span class="p">(</span><span class="n">playbook</span><span class="o">/</span><span class="n">requirements</span><span class="p">)</span>
+<span class="w">         </span><span class="err">│</span><span class="w">    </span><span class="n">subprocess</span><span class="p">.</span><span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span><span class="w"> </span><span class="n">timeout</span><span class="o">=</span><span class="n">SCANNER_TIMEOUT_S</span><span class="p">)</span>
+<span class="w">         </span><span class="err">│</span><span class="w">    </span><span class="n">adapter</span><span class="p">.</span><span class="n">parse_output</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">list</span><span class="o">[</span><span class="n">NormalizedFinding</span><span class="o">]</span>
+<span class="w">         </span><span class="err">│</span><span class="w">    </span><span class="k">filter</span><span class="w"> </span><span class="k">by</span><span class="w"> </span><span class="n">severity_threshold</span>
+<span class="w">         </span><span class="err">│</span><span class="w">    </span><span class="n">persist</span><span class="w"> </span><span class="n">ScanResult</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="n">ScanFinding</span><span class="w"> </span><span class="k">rows</span>
+<span class="w">         </span><span class="err">▼</span>
+<span class="w">  </span><span class="n">ScanRunResult</span><span class="p">(</span><span class="n">allowed</span><span class="p">,</span><span class="w"> </span><span class="n">warn_messages</span><span class="p">,</span><span class="w"> </span><span class="n">block_messages</span><span class="p">,</span><span class="w"> </span><span class="n">results</span><span class="p">)</span>
+<span class="w">         </span><span class="err">│</span>
+<span class="w">    </span><span class="err">┌────┴────┐</span>
+<span class="w">    </span><span class="err">▼</span><span class="w">         </span><span class="err">▼</span>
+<span class="w">  </span><span class="n">allowed</span><span class="w">   </span><span class="n">blocked</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="k">delete</span><span class="w"> </span><span class="n">UJ</span><span class="p">,</span><span class="w"> </span><span class="mi">403</span><span class="w"> </span><span class="k">with</span><span class="w"> </span><span class="n">reasons</span>
+<span class="w">    </span><span class="err">│</span>
+<span class="w">  </span><span class="n">warn</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">append</span><span class="w"> </span><span class="n">one</span><span class="o">-</span><span class="n">liner</span><span class="w"> </span><span class="k">to</span><span class="w"> </span><span class="n">job_explanation</span><span class="p">,</span><span class="w"> </span><span class="n">signal_start</span>
+</code></pre></div>
+
+<p>When <code>SCANNER_ENABLED=False</code>, <code>run_scanners_for_launch</code> returns an
+empty allow-immediately <code>ScanRunResult</code>.</p>
+<hr />
+<h2 id="models-forgemainmodelsscannerpy">Models — <code>forge/main/models/scanner.py</code></h2>
+<h3 id="scannercommonmodelnamenotunique"><code>Scanner(CommonModelNameNotUnique)</code></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>organization</code></td>
+<td>FK Organization (null = global)</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>TextField</td>
+</tr>
+<tr>
+<td><code>tool</code></td>
+<td><code>ansible-lint</code> / <code>checkov</code> / <code>pip-audit</code></td>
+</tr>
+<tr>
+<td><code>config</code></td>
+<td>JSONField — adapter-specific opts (excludes, profile, etc.)</td>
+</tr>
+<tr>
+<td><code>severity_threshold</code></td>
+<td><code>info</code> / <code>low</code> / <code>medium</code> / <code>high</code> / <code>critical</code></td>
+</tr>
+<tr>
+<td><code>enforcement</code></td>
+<td><code>warn</code> / <code>enforce</code></td>
+</tr>
+<tr>
+<td><code>enabled</code></td>
+<td>bool</td>
+</tr>
+<tr>
+<td><code>applies_to</code></td>
+<td>JSON list: <code>job_template</code>, <code>workflow_job_template</code>, <code>ad_hoc_command</code> (empty = all)</td>
+</tr>
+<tr>
+<td><code>trigger_count</code>, <code>last_run_at</code>, <code>last_run_status</code></td>
+<td>populated by the runner</td>
+</tr>
+</tbody>
+</table>
+<h3 id="scanresultcreatedmodifiedmodel"><code>ScanResult(CreatedModifiedModel)</code></h3>
+<p>One row per scanner execution.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scanner</code></td>
+<td>FK Scanner (SET_NULL)</td>
+</tr>
+<tr>
+<td><code>scanner_name</code></td>
+<td>Cached name so historical rows survive delete</td>
+</tr>
+<tr>
+<td><code>unified_job</code></td>
+<td>FK UnifiedJob (SET_NULL) — nulled when the launch was blocked</td>
+</tr>
+<tr>
+<td><code>unified_job_template</code></td>
+<td>FK UnifiedJobTemplate (SET_NULL)</td>
+</tr>
+<tr>
+<td><code>organization</code></td>
+<td>FK Organization (SET_NULL)</td>
+</tr>
+<tr>
+<td><code>triggered_by</code></td>
+<td>FK auth.User (SET_NULL)</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td><code>ok</code> / <code>warn</code> / <code>blocked</code> / <code>error</code> / <code>timeout</code></td>
+</tr>
+<tr>
+<td><code>duration_ms</code></td>
+<td>Wall-clock scanner runtime</td>
+</tr>
+<tr>
+<td><code>finding_count</code></td>
+<td>Findings at or above threshold</td>
+</tr>
+<tr>
+<td><code>highest_severity</code></td>
+<td>Cached for filtering / audit UI</td>
+</tr>
+<tr>
+<td><code>message</code></td>
+<td>Short summary (first finding)</td>
+</tr>
+<tr>
+<td><code>raw_output</code></td>
+<td>Truncated stdout/stderr (<code>SCANNER_RAW_OUTPUT_MAX</code> bytes)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="scanfindingbasemodel"><code>ScanFinding(BaseModel)</code></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scan_result</code></td>
+<td>FK ScanResult CASCADE</td>
+</tr>
+<tr>
+<td><code>rule_id</code></td>
+<td>e.g. <code>yaml[line-length]</code>, <code>CKV_ANSIBLE_*</code>, PyPI advisory id</td>
+</tr>
+<tr>
+<td><code>severity</code></td>
+<td>Normalized to <code>info/low/medium/high/critical</code></td>
+</tr>
+<tr>
+<td><code>file_path</code></td>
+<td>Relative to project checkout</td>
+</tr>
+<tr>
+<td><code>line</code></td>
+<td>Optional</td>
+</tr>
+<tr>
+<td><code>message</code></td>
+<td>Human-readable</td>
+</tr>
+</tbody>
+</table>
+<p>Migration: <code>forge/main/migrations/0203_scanner.py</code>. All three models are
+registered with <code>permission_registry</code> and <code>activity_stream_registrar</code>.</p>
+<h3 id="pure-helpers">Pure helpers</h3>
+<p>Exported from the model module and unit-tested without Django bootstrap:</p>
+<div class="codehilite"><pre><span></span><code><span class="n">severity_at_or_above</span><span class="p">(</span><span class="n">finding_sev</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+<span class="n">effective_enforcement</span><span class="p">(</span><span class="n">global_enabled</span><span class="p">,</span> <span class="n">scanner_enforcement</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+<span class="n">aggregate_status</span><span class="p">(</span><span class="n">findings</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;ok&#39;</span> <span class="o">|</span> <span class="s1">&#39;warn&#39;</span> <span class="o">|</span> <span class="s1">&#39;blocked&#39;</span>
+<span class="n">fail_mode_decision</span><span class="p">(</span><span class="n">scanner_unavailable</span><span class="p">,</span> <span class="n">fail_mode</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;allow&#39;</span> <span class="o">|</span> <span class="s1">&#39;deny&#39;</span>
+</code></pre></div>
+
+<p>Severity ordering: <code>info(0) &lt; low(1) &lt; medium(2) &lt; high(3) &lt; critical(4)</code>.</p>
+<hr />
+<h2 id="tool-adapters-forgemainscanningtools">Tool adapters — <code>forge/main/scanning/tools/</code></h2>
+<p>One file per tool. Each exposes the same interface used by the runner:</p>
+<div class="codehilite"><pre><span></span><code><span class="n">build_command</span><span class="p">(</span><span class="n">target_path</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<span class="n">parse_output</span><span class="p">(</span><span class="n">stdout</span><span class="p">,</span> <span class="n">stderr</span><span class="p">,</span> <span class="n">returncode</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="n">NormalizedFinding</span><span class="p">]</span>
+</code></pre></div>
+
+<p><code>NormalizedFinding</code> (from <code>forge.main.scanning.types</code>) has
+<code>rule_id, severity, file_path, line, message</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Adapter</th>
+<th>CLI invocation</th>
+<th>Severity mapping</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ansible_lint.py</code></td>
+<td><code>ansible-lint -f json --strict &lt;playbook&gt;</code></td>
+<td>Rule tag → info/low/medium/high/critical. <code>very_high</code>/<code>security</code> → high; <code>med</code>/<code>medium</code> → medium; <code>info</code>/<code>notice</code> → info.</td>
+</tr>
+<tr>
+<td><code>checkov.py</code></td>
+<td><code>checkov -f &lt;playbook&gt; --framework ansible -o json</code></td>
+<td><code>CRITICAL</code>→critical, <code>HIGH</code>→high, <code>MEDIUM</code>→medium, <code>LOW</code>→low; anything else → info.</td>
+</tr>
+<tr>
+<td><code>pip_audit.py</code></td>
+<td><code>pip-audit -r &lt;requirements.txt&gt; --format json</code></td>
+<td>OSV severity field → mapped directly; missing → medium by default.</td>
+</tr>
+</tbody>
+</table>
+<p>A tool registry in <code>forge/main/scanning/tools/__init__.py</code> exposes
+<code>get_adapter(tool_name)</code> used by the runner.</p>
+<hr />
+<h2 id="runner-forgemainscanningrunnerpy">Runner — <code>forge/main/scanning/runner.py</code></h2>
+<div class="codehilite"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">run_scanners_for_launch</span><span class="p">(</span><span class="n">unified_job</span><span class="p">,</span> <span class="n">request</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ScanRunResult</span><span class="p">:</span>
+</code></pre></div>
+
+<p><code>ScanRunResult</code>:</p>
+<div class="codehilite"><pre><span></span><code><span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ScanRunResult</span><span class="p">:</span>
+    <span class="n">allowed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">warn_messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">block_messages</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">results</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ScanResult</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+</code></pre></div>
+
+<p>Resolution rules:</p>
+<ul>
+<li><strong><code>job_template</code></strong> → target is <code>&lt;project_path&gt;/&lt;playbook&gt;</code>. <code>ansible-lint</code>
+  and <code>checkov</code> scan the playbook file; <code>pip-audit</code> scans the project
+  root (expects a <code>requirements.txt</code>).</li>
+<li><strong><code>workflow_job_template</code></strong> → skipped (no single playbook).</li>
+<li><strong><code>ad_hoc_command</code></strong> → target is the project path (if any);
+  <code>ansible-lint</code> is skipped.</li>
+</ul>
+<p>Per-scanner execution:</p>
+<ol>
+<li>Pick adapter, build command.</li>
+<li><code>subprocess.run(..., timeout=SCANNER_TIMEOUT_S, capture_output=True)</code>.</li>
+<li>On <code>TimeoutExpired</code> → status <code>timeout</code>; on <code>FileNotFoundError</code> or
+   other <code>OSError</code> → status <code>error</code>. Both go through
+   <code>fail_mode_decision(unavailable=True, SCANNER_FAIL_MODE)</code> to decide
+   whether to block or warn.</li>
+<li>Otherwise parse output, filter by the scanner's <code>severity_threshold</code>,
+   compute highest severity and aggregated status.</li>
+<li>Persist <code>ScanResult</code> + <code>ScanFinding</code> rows.</li>
+<li>Update <code>last_run_at</code>, <code>last_run_status</code>, optionally <code>trigger_count</code>.</li>
+<li>Append to <code>warn_messages</code> or <code>block_messages</code>.</li>
+</ol>
+<p>When a scanner blocks, <code>ScanResult.unified_job</code> is set to <code>NULL</code> so
+the FK cascade doesn't lose the audit row when the view deletes the job.</p>
+<hr />
+<h2 id="settings-forgemainconfpy">Settings — <code>forge/main/conf.py</code></h2>
+<p>Registered under the <strong>Security</strong> category:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SCANNER_ENABLED</code></td>
+<td><code>False</code></td>
+<td>Master switch; runner is a no-op otherwise.</td>
+</tr>
+<tr>
+<td><code>SCANNER_TIMEOUT_S</code></td>
+<td><code>120</code></td>
+<td>Per-scanner subprocess timeout in seconds.</td>
+</tr>
+<tr>
+<td><code>SCANNER_FAIL_MODE</code></td>
+<td><code>allow</code></td>
+<td>What to do when a scanner crashes/times out. <code>allow</code> = fail-open (warn row logged), <code>deny</code> = fail-closed (launch blocked).</td>
+</tr>
+<tr>
+<td><code>SCANNER_RAW_OUTPUT_MAX</code></td>
+<td><code>8192</code></td>
+<td>Bytes of tool stdout/stderr kept on each <code>ScanResult.raw_output</code>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="view-hooks">View hooks</h2>
+<p>Same three launch views as Policy-as-Code, inserted <strong>after</strong> the OPA
+hook so a policy denial short-circuits the scan:</p>
+<ul>
+<li><code>forge/api/views/job_templates.py</code> → <code>JobTemplateLaunch.post</code></li>
+<li><code>forge/api/views/workflows.py</code> → <code>WorkflowJobTemplateLaunch.post</code></li>
+<li><code>forge/api/views/ad_hoc_commands.py</code> → <code>AdHocCommandList.create</code></li>
+</ul>
+<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">forge.main.scanning.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_scanners_for_launch</span>
+<span class="n">scan_result</span> <span class="o">=</span> <span class="n">run_scanners_for_launch</span><span class="p">(</span><span class="n">new_job</span><span class="p">,</span> <span class="n">request</span><span class="p">)</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">scan_result</span><span class="o">.</span><span class="n">allowed</span><span class="p">:</span>
+    <span class="n">new_job</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
+        <span class="p">{</span><span class="s1">&#39;detail&#39;</span><span class="p">:</span> <span class="s1">&#39;Scanner blocked launch.&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;reasons&#39;</span><span class="p">:</span> <span class="n">scan_result</span><span class="o">.</span><span class="n">block_messages</span><span class="p">},</span>
+        <span class="n">status</span><span class="o">=</span><span class="mi">403</span><span class="p">,</span>
+    <span class="p">)</span>
+<span class="k">if</span> <span class="n">scan_result</span><span class="o">.</span><span class="n">warn_messages</span><span class="p">:</span>
+    <span class="n">existing</span> <span class="o">=</span> <span class="n">new_job</span><span class="o">.</span><span class="n">job_explanation</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">new_job</span><span class="o">.</span><span class="n">job_explanation</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">existing</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Scan warnings: &#39;</span> <span class="o">+</span>
+        <span class="s1">&#39;; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">scan_result</span><span class="o">.</span><span class="n">warn_messages</span><span class="p">)</span>
+    <span class="p">)[:</span><span class="mi">1024</span><span class="p">]</span>
+    <span class="n">new_job</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">update_fields</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;job_explanation&#39;</span><span class="p">])</span>
+</code></pre></div>
+
+<hr />
+<h2 id="rest-api">REST API</h2>
+<p>Mounted under <code>/api/v2/scanners/</code> and <code>/api/v2/scan_results/</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET / POST</td>
+<td><code>/api/v2/scanners/</code></td>
+<td>List + create</td>
+</tr>
+<tr>
+<td>GET / PATCH / DELETE</td>
+<td><code>/api/v2/scanners/{id}/</code></td>
+<td>CRUD</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/scanners/{id}/enable/</code></td>
+<td>Enable</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/scanners/{id}/disable/</code></td>
+<td>Disable</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/scan_results/</code></td>
+<td>List (filter: <code>scanner</code>, <code>status</code>, <code>unified_job</code>, <code>since</code>)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/scan_results/{id}/</code></td>
+<td>Detail with embedded findings</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="tests-tests_standalonetest_scannerpy">Tests — <code>tests_standalone/test_scanner.py</code></h2>
+<p>Standalone unit tests, no Django bootstrap (same pattern as
+<code>test_policy.py</code> and <code>test_drift.py</code>):</p>
+<ul>
+<li><code>severity_at_or_above</code> matrix — info &lt; low &lt; medium &lt; high &lt; critical.</li>
+<li><code>effective_enforcement</code> matrix (global_enabled × scanner_enforcement).</li>
+<li><code>aggregate_status</code> — no findings → <code>ok</code>; below threshold → <code>ok</code>;
+  at/above + warn → <code>warn</code>; at/above + enforce → <code>blocked</code>.</li>
+<li><code>fail_mode_decision</code> — (unavailable, <code>allow</code>) → <code>allow</code>;
+  (unavailable, <code>deny</code>) → <code>deny</code>; (available, *) → <code>allow</code>.</li>
+<li>Adapter parsers fed canned JSON fixtures (ansible-lint, checkov,
+  pip-audit) → expected NormalizedFinding lists.</li>
+<li><code>applies_to</code> resource matching (empty list = all; subset match).</li>
+</ul>
+<p>Run with: <code>python -m unittest tests_standalone.test_scanner -v</code></p>
+<hr />
+<h2 id="deployment">Deployment</h2>
+<ul>
+<li>The scanner CLIs live inside the <code>forge-backend</code> image, installed
+  into <code>/var/lib/awx/venv/awx</code> so Django subprocess calls find them
+  on PATH. See <code>forge-backend/Dockerfile</code>:</li>
+</ul>
+<p><code>dockerfile
+  RUN /var/lib/awx/venv/awx/bin/pip install --no-cache-dir \
+          'ansible-lint==25.1.*' \
+          'checkov==3.2.*' \
+          'pip-audit==2.7.*'</code></p>
+<ul>
+<li>No new compose service is needed. The <code>forge_projects</code> named volume
+  is already mounted on all forge containers (via the <code>x-forge-common</code>
+  anchor in <code>docker-compose.yml</code>), so the runner sees the project
+  checkout path on disk.</li>
+</ul>
+<hr />
+<h2 id="end-to-end-manual-verification">End-to-end manual verification</h2>
+<ol>
+<li>Settings → Security → set <code>SCANNER_ENABLED=true</code>.</li>
+<li>Create a Scanner: name <code>block-shell-injection</code>, tool <code>ansible-lint</code>,
+   <code>severity_threshold=high</code>, <code>enforcement=enforce</code>,
+   <code>applies_to=[job_template]</code>.</li>
+<li>Create a project with a playbook that violates a high-severity
+   ansible-lint rule (e.g. <code>shell:</code> with an unquoted Jinja variable).</li>
+<li>Launch that JT → 403 with the rule_id in <code>reasons</code>; a <code>ScanResult</code>
+   row appears with <code>status=blocked</code>.</li>
+<li>Lower <code>severity_threshold</code> to <code>critical</code> (rule is <code>high</code>) → launch
+   succeeds, <code>ScanResult.status=ok</code>, <code>job_explanation</code> unchanged.</li>
+<li>Set <code>enforcement=warn</code>, threshold back to <code>high</code> → launch succeeds
+   but <code>job_explanation</code> shows the one-line warning summary.</li>
+<li>Disable the scanner → launch is silent, no new <code>ScanResult</code> row.</li>
+<li>Set <code>SCANNER_TIMEOUT_S=1</code>, point at a very large playbook →
+   <code>ScanResult.status=timeout</code>, behavior follows <code>SCANNER_FAIL_MODE</code>
+   (<code>allow</code> = warn, <code>deny</code> = blocked).</li>
+</ol>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docker Deployment — Forge Platform Docs</title>
+  <meta name="description" content="Docker Deployment documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/deployment.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="07-docker-deployment">07 — Docker &amp; Deployment</h1>
+<p>How to build, configure, and deploy Forge Platform to production.</p>
+<hr />
+<h2 id="architecture">Architecture</h2>
+<p>Forge Platform uses a separated architecture with independent Docker images:</p>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Image</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>forge-web</td>
+<td><code>registry.cloudforyour.work/forge-platform/forge-backend</code></td>
+<td>Django API (uwsgi + daphne + nginx-internal)</td>
+</tr>
+<tr>
+<td>forge-task</td>
+<td><code>registry.cloudforyour.work/forge-platform/forge-backend</code></td>
+<td>Task execution (dispatcher, callback, receptor)</td>
+</tr>
+<tr>
+<td>forge-init</td>
+<td><code>registry.cloudforyour.work/forge-platform/forge-backend</code></td>
+<td>One-shot: migrations, admin user, provisioning</td>
+</tr>
+<tr>
+<td>forge-frontend</td>
+<td><code>registry.cloudforyour.work/forge-platform/forge-frontend</code></td>
+<td>React SPA served by nginx</td>
+</tr>
+<tr>
+<td>postgres</td>
+<td><code>postgres:15-alpine</code></td>
+<td>Database</td>
+</tr>
+<tr>
+<td>redis</td>
+<td><code>redis:7-alpine</code></td>
+<td>Cache and message broker</td>
+</tr>
+<tr>
+<td>nginx</td>
+<td><code>nginx:1.27-alpine</code></td>
+<td>TLS termination, routing</td>
+</tr>
+</tbody>
+</table>
+<h3 id="startup-order">Startup Order</h3>
+<div class="codehilite"><pre><span></span><code>postgres ──► redis ──► forge-init ──► forge-web ──► forge-task ──► nginx
+                                                     forge-frontend ──┘
+</code></pre></div>
+
+<p>Each service waits for the previous one to be healthy before starting.</p>
+<h3 id="request-routing-external-nginx">Request Routing (External Nginx)</h3>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Destination</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/*</code></td>
+<td>forge-web:8013</td>
+<td>REST API</td>
+</tr>
+<tr>
+<td><code>/sso/*</code></td>
+<td>forge-web:8013</td>
+<td>SSO/SAML/LDAP</td>
+</tr>
+<tr>
+<td><code>/api/login/</code></td>
+<td>forge-web:8013</td>
+<td>Login (rate-limited)</td>
+</tr>
+<tr>
+<td><code>/(api/)?websocket/</code></td>
+<td>forge-web:8013</td>
+<td>WebSocket (upgrade)</td>
+</tr>
+<tr>
+<td><code>/*</code> (everything else)</td>
+<td>forge-frontend:80</td>
+<td>React SPA</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="building-docker-images">Building Docker Images</h2>
+<h3 id="backend">Backend</h3>
+<div class="codehilite"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>forge-backend
+docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>registry.cloudforyour.work/forge-platform/forge-backend:latest<span class="w"> </span>.
+docker<span class="w"> </span>push<span class="w"> </span>registry.cloudforyour.work/forge-platform/forge-backend:latest
+</code></pre></div>
+
+<p>The Dockerfile is a multi-stage build:
+1. <strong>builder</strong> (Ubuntu 24.04): installs Python deps, builds sdist, runs collectstatic
+2. <strong>runtime</strong> (Ubuntu 24.04): minimal image with runtime deps, receptor, supervisor</p>
+<h3 id="frontend">Frontend</h3>
+<div class="codehilite"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>forge-frontend
+docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>registry.cloudforyour.work/forge-platform/forge-frontend:latest<span class="w"> </span>.
+docker<span class="w"> </span>push<span class="w"> </span>registry.cloudforyour.work/forge-platform/forge-frontend:latest
+</code></pre></div>
+
+<p>The Dockerfile is a multi-stage build:
+1. <strong>builder</strong> (Node 20 Alpine): <code>npm ci &amp;&amp; npm run build</code>
+2. <strong>runtime</strong> (nginx 1.27 Alpine): serves built assets with SPA fallback</p>
+<hr />
+<h2 id="production-deployment">Production Deployment</h2>
+<h3 id="prerequisites">Prerequisites</h3>
+<ul>
+<li>Docker 24+ with Compose v2</li>
+<li>8GB+ RAM, 4+ CPU cores</li>
+<li>Domain name with SSL certificate (or self-signed for testing)</li>
+</ul>
+<h3 id="quick-start">Quick Start</h3>
+<div class="codehilite"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>forge-deploy
+
+<span class="c1"># 1. Create configuration</span>
+cp<span class="w"> </span>.env.example<span class="w"> </span>.env
+<span class="c1"># Edit .env — set all REQUIRED values (see below)</span>
+
+<span class="c1"># 2. SSL certificates</span>
+mkdir<span class="w"> </span>-p<span class="w"> </span>nginx/ssl
+
+<span class="c1"># Let&#39;s Encrypt (production):</span>
+certbot<span class="w"> </span>certonly<span class="w"> </span>--standalone<span class="w"> </span>-d<span class="w"> </span>forge.example.com
+cp<span class="w"> </span>/etc/letsencrypt/live/forge.example.com/fullchain.pem<span class="w"> </span>nginx/ssl/
+cp<span class="w"> </span>/etc/letsencrypt/live/forge.example.com/privkey.pem<span class="w"> </span>nginx/ssl/
+
+<span class="c1"># Or self-signed (testing):</span>
+openssl<span class="w"> </span>req<span class="w"> </span>-x509<span class="w"> </span>-nodes<span class="w"> </span>-days<span class="w"> </span><span class="m">365</span><span class="w"> </span>-newkey<span class="w"> </span>rsa:2048<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-keyout<span class="w"> </span>nginx/ssl/privkey.pem<span class="w"> </span>-out<span class="w"> </span>nginx/ssl/fullchain.pem<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-subj<span class="w"> </span><span class="s2">&quot;/CN=forge.example.com&quot;</span>
+
+<span class="c1"># 3. Deploy</span>
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+
+<span class="c1"># 4. Watch initialization</span>
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>forge-init
+
+<span class="c1"># 5. Verify</span>
+curl<span class="w"> </span>-k<span class="w"> </span>https://forge.example.com/api/v2/ping/
+</code></pre></div>
+
+<h3 id="deploy-in-vagrant-testing">Deploy in Vagrant (testing)</h3>
+<div class="codehilite"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>forge-deploy
+vagrant<span class="w"> </span>up<span class="w">          </span><span class="c1"># Ubuntu 24.04 VM + Docker + Compose + SSL + .env auto-generated</span>
+vagrant<span class="w"> </span>ssh
+<span class="nb">cd</span><span class="w"> </span>/forge-deploy
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+
+<span class="c1"># Access from host: https://192.168.56.22/</span>
+</code></pre></div>
+
+<hr />
+<h2 id="environment-variables">Environment Variables</h2>
+<h3 id="required">Required</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Generate with...</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POSTGRES_PASSWORD</code></td>
+<td>DB password</td>
+<td><code>openssl rand -hex 16</code></td>
+</tr>
+<tr>
+<td><code>FORGE_SECRET_KEY</code></td>
+<td>Django crypto key</td>
+<td><code>openssl rand -hex 32</code></td>
+</tr>
+<tr>
+<td><code>FORGE_BROADCAST_WEBSOCKET_SECRET</code></td>
+<td>WS auth secret</td>
+<td><code>openssl rand -hex 32</code></td>
+</tr>
+<tr>
+<td><code>FORGE_ADMIN_PASSWORD</code></td>
+<td>Admin password</td>
+<td>Strong password</td>
+</tr>
+<tr>
+<td><code>FORGE_CSRF_TRUSTED_ORIGINS</code></td>
+<td>CSRF origins</td>
+<td><code>https://forge.example.com</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="optional">Optional</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FORGE_ALLOWED_HOSTS</code></td>
+<td><code>*</code></td>
+<td>Allowed HTTP hosts</td>
+</tr>
+<tr>
+<td><code>FORGE_ADMIN_USER</code></td>
+<td><code>admin</code></td>
+<td>Admin username</td>
+</tr>
+<tr>
+<td><code>FORGE_ADMIN_EMAIL</code></td>
+<td><code>admin@example.com</code></td>
+<td>Admin email</td>
+</tr>
+<tr>
+<td><code>FORGE_NODE_NAME</code></td>
+<td><code>forge-node</code></td>
+<td>Instance hostname</td>
+</tr>
+<tr>
+<td><code>FORGE_NODE_TYPE</code></td>
+<td><code>hybrid</code></td>
+<td><code>hybrid</code>, <code>control</code>, or <code>execution</code></td>
+</tr>
+<tr>
+<td><code>FORGE_BACKEND_IMAGE</code></td>
+<td><code>registry.cloudforyour.work/forge-platform/forge-backend</code></td>
+<td>Backend Docker image</td>
+</tr>
+<tr>
+<td><code>FORGE_FRONTEND_IMAGE</code></td>
+<td><code>registry.cloudforyour.work/forge-platform/forge-frontend</code></td>
+<td>Frontend Docker image</td>
+</tr>
+<tr>
+<td><code>FORGE_TAG</code></td>
+<td><code>latest</code></td>
+<td>Image tag</td>
+</tr>
+<tr>
+<td><code>NGINX_HTTP_PORT</code></td>
+<td><code>80</code></td>
+<td>External HTTP port</td>
+</tr>
+<tr>
+<td><code>NGINX_HTTPS_PORT</code></td>
+<td><code>443</code></td>
+<td>External HTTPS port</td>
+</tr>
+</tbody>
+</table>
+<h3 id="watch-out">Watch out</h3>
+<ul>
+<li>
+<p><strong><code>FORGE_SECRET_KEY</code> MUST REMAIN THE SAME</strong> between upgrades. If you change it,
+  all sessions, tokens, and encrypted credentials become invalid.</p>
+</li>
+<li>
+<p><strong><code>FORGE_CSRF_TRUSTED_ORIGINS</code> must include the full URL</strong> with <code>https://</code>. Without
+  it, the login form won't work (403 CSRF error).</p>
+</li>
+</ul>
+<hr />
+<h2 id="ssltls">SSL/TLS</h2>
+<h3 id="lets-encrypt-recommended-for-production">Let's Encrypt (recommended for production)</h3>
+<div class="codehilite"><pre><span></span><code>certbot<span class="w"> </span>certonly<span class="w"> </span>--standalone<span class="w"> </span>-d<span class="w"> </span>forge.example.com
+cp<span class="w"> </span>/etc/letsencrypt/live/forge.example.com/<span class="o">{</span>fullchain,privkey<span class="o">}</span>.pem<span class="w"> </span>nginx/ssl/
+</code></pre></div>
+
+<p>Auto-renewal (crontab):</p>
+<div class="codehilite"><pre><span></span><code><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">1</span><span class="w"> </span>*<span class="w"> </span>*<span class="w"> </span>certbot<span class="w"> </span>renew<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cp<span class="w"> </span>/etc/letsencrypt/live/forge.example.com/*.pem<span class="w"> </span>/path/to/nginx/ssl/<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>docker<span class="w"> </span>compose<span class="w"> </span>restart<span class="w"> </span>nginx
+</code></pre></div>
+
+<h3 id="security-notes">Security Notes</h3>
+<ul>
+<li>Nginx is configured for <strong>TLS 1.2 and 1.3</strong> — older versions are disabled</li>
+<li><strong>HSTS</strong> header is enabled (63072000 seconds)</li>
+<li><strong>Rate limiting</strong> on <code>/api/login/</code> — 5 requests/second, burst 10</li>
+<li><code>client_max_body_size</code> is <strong>50MB</strong></li>
+</ul>
+<hr />
+<h2 id="backup-restore">Backup &amp; Restore</h2>
+<h3 id="backup">Backup</h3>
+<div class="codehilite"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-task<span class="w"> </span>bash<span class="w"> </span>/etc/forge/backup.sh
+
+<span class="c1"># With custom retention (30 days)</span>
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-task<span class="w"> </span>bash<span class="w"> </span>/etc/forge/backup.sh<span class="w"> </span><span class="m">30</span>
+</code></pre></div>
+
+<h3 id="scheduled-backup-crontab">Scheduled backup (crontab)</h3>
+<div class="codehilite"><pre><span></span><code><span class="m">0</span><span class="w"> </span><span class="m">2</span><span class="w"> </span>*<span class="w"> </span>*<span class="w"> </span>*<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>/path/to/forge-deploy<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-T<span class="w"> </span>forge-task<span class="w"> </span>bash<span class="w"> </span>/etc/forge/backup.sh
+</code></pre></div>
+
+<h3 id="restore">Restore</h3>
+<div class="codehilite"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>stop<span class="w"> </span>forge-web<span class="w"> </span>forge-task
+gunzip<span class="w"> </span>-c<span class="w"> </span>forge_backup_20260317.sql.gz<span class="w"> </span><span class="p">|</span><span class="w"> </span>docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-T<span class="w"> </span>postgres<span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>forge<span class="w"> </span>forge
+docker<span class="w"> </span>compose<span class="w"> </span>start<span class="w"> </span>forge-web<span class="w"> </span>forge-task
+</code></pre></div>
+
+<hr />
+<h2 id="health-checks">Health Checks</h2>
+<div class="codehilite"><pre><span></span><code><span class="c1"># API ping (no auth)</span>
+curl<span class="w"> </span>-k<span class="w"> </span>https://forge.example.com/api/v2/ping/
+
+<span class="c1"># Instance capacity (auth required)</span>
+curl<span class="w"> </span>-k<span class="w"> </span>-u<span class="w"> </span>admin:password<span class="w"> </span>https://forge.example.com/api/v2/instances/
+
+<span class="c1"># Service status</span>
+docker<span class="w"> </span>compose<span class="w"> </span>ps
+
+<span class="c1"># Supervisor processes</span>
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-web<span class="w"> </span>supervisorctl<span class="w"> </span>status
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-task<span class="w"> </span>supervisorctl<span class="w"> </span>status
+</code></pre></div>
+
+<hr />
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="container-wont-start">Container won't start</h3>
+<div class="codehilite"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>forge-init<span class="w">    </span><span class="c1"># Check migrations and init</span>
+<span class="c1"># &quot;database does not exist&quot; → POSTGRES_DB mismatch</span>
+<span class="c1"># &quot;authentication failed&quot; → POSTGRES_PASSWORD mismatch</span>
+</code></pre></div>
+
+<h3 id="cant-log-in-403-csrf">Can't log in (403 CSRF)</h3>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Check FORGE_CSRF_TRUSTED_ORIGINS in .env</span>
+<span class="c1"># Must be full URL with https:// (e.g., https://192.168.56.22)</span>
+</code></pre></div>
+
+<h3 id="server-error-500-on-root-page">Server Error (500 on root page)</h3>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Check if frontend container is running</span>
+docker<span class="w"> </span>compose<span class="w"> </span>ps<span class="w"> </span>forge-frontend
+<span class="c1"># Must be healthy</span>
+
+<span class="c1"># Check nginx routing</span>
+docker<span class="w"> </span>compose<span class="w"> </span>logs<span class="w"> </span>nginx
+</code></pre></div>
+
+<h3 id="jobs-not-running">Jobs not running</h3>
+<div class="codehilite"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-task<span class="w"> </span>supervisorctl<span class="w"> </span>status
+<span class="c1"># All 4 must be RUNNING: receptor, dispatcher, callback-receiver, wsrelay</span>
+
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-web<span class="w"> </span>forge-manage<span class="w"> </span>list_instances
+</code></pre></div>
+
+<h3 id="forgotten-admin-password">Forgotten admin password</h3>
+<div class="codehilite"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-web<span class="w"> </span>forge-manage<span class="w"> </span>update_password<span class="w"> </span>--username<span class="o">=</span>admin<span class="w"> </span>--password<span class="o">=</span>NewPass123!
+</code></pre></div>
+
+<hr />
+<h2 id="upgrading">Upgrading</h2>
+<div class="codehilite"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>forge-deploy
+
+<span class="c1"># 1. Pull new images</span>
+docker<span class="w"> </span>compose<span class="w"> </span>pull
+
+<span class="c1"># 2. Recreate containers (migrations run automatically via forge-init)</span>
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+
+<span class="c1"># 3. Verify</span>
+docker<span class="w"> </span>compose<span class="w"> </span>ps
+curl<span class="w"> </span>-k<span class="w"> </span>https://forge.example.com/api/v2/ping/
+</code></pre></div>
+
+<hr />
+<h2 id="scaling">Scaling</h2>
+<h3 id="adding-an-execution-node">Adding an execution node</h3>
+<div class="codehilite"><pre><span></span><code><span class="c1"># On the execution node:</span>
+docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>--name<span class="w"> </span>forge-task<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">DATABASE_HOST</span><span class="o">=</span>db.example.com<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">REDIS_HOST</span><span class="o">=</span>redis.example.com<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">FORGE_NODE_TYPE</span><span class="o">=</span>execution<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-e<span class="w"> </span><span class="nv">FORGE_NODE_NAME</span><span class="o">=</span>exec-node-1<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>registry.cloudforyour.work/forge-platform/forge-backend:latest<span class="w"> </span>launch_awx_task.sh
+
+<span class="c1"># On the control node:</span>
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-web<span class="w"> </span>forge-manage<span class="w"> </span>provision_instance<span class="w"> </span>--hostname<span class="o">=</span>exec-node-1<span class="w"> </span>--node-type<span class="o">=</span>execution
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-web<span class="w"> </span>forge-manage<span class="w"> </span>register_queue<span class="w"> </span>--queuename<span class="o">=</span>default<span class="w"> </span>--hostnames<span class="o">=</span>exec-node-1
+</code></pre></div>
+
+<h3 id="recommended-hardware">Recommended Hardware</h3>
+<table>
+<thead>
+<tr>
+<th>Size</th>
+<th>CPU</th>
+<th>RAM</th>
+<th>Disk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Small (≤100 hosts)</td>
+<td>4</td>
+<td>8GB</td>
+<td>50GB SSD</td>
+</tr>
+<tr>
+<td>Medium (≤1000 hosts)</td>
+<td>8</td>
+<td>16GB</td>
+<td>100GB SSD</td>
+</tr>
+<tr>
+<td>Large (≤10000 hosts)</td>
+<td>16</td>
+<td>32GB</td>
+<td>200GB SSD</td>
+</tr>
+</tbody>
+</table>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration Reference — Forge Platform Docs</title>
+  <meta name="description" content="Configuration Reference documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/configuration.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="12-configuration-reference">12 — Configuration Reference</h1>
+<p>All settings: environment variables, Django settings, and database-backed settings.</p>
+<hr />
+<h2 id="environment-variables">Environment Variables</h2>
+<p>Set in <code>tools/docker-compose-prod/.env</code>.</p>
+<h3 id="core-required">Core (required)</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Description</th>
+<th>Generate with...</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POSTGRES_PASSWORD</code></td>
+<td>DB password</td>
+<td><code>openssl rand -base64 24</code></td>
+</tr>
+<tr>
+<td><code>FORGE_SECRET_KEY</code></td>
+<td>Django crypto key</td>
+<td><code>openssl rand -base64 32</code></td>
+</tr>
+<tr>
+<td><code>FORGE_BROADCAST_WEBSOCKET_SECRET</code></td>
+<td>WS auth secret</td>
+<td><code>openssl rand -base64 32</code></td>
+</tr>
+<tr>
+<td><code>FORGE_ADMIN_PASSWORD</code></td>
+<td>Admin password</td>
+<td>Manually — strong password</td>
+</tr>
+<tr>
+<td><code>FORGE_CSRF_TRUSTED_ORIGINS</code></td>
+<td>CSRF origins</td>
+<td><code>https://forge.example.com</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="optional">Optional</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FORGE_IMAGE</code></td>
+<td><code>forge-platform/forge</code></td>
+<td>Docker image</td>
+</tr>
+<tr>
+<td><code>FORGE_TAG</code></td>
+<td><code>latest</code></td>
+<td>Image tag</td>
+</tr>
+<tr>
+<td><code>POSTGRES_USER</code></td>
+<td><code>forge</code></td>
+<td>DB user</td>
+</tr>
+<tr>
+<td><code>POSTGRES_DB</code></td>
+<td><code>forge</code></td>
+<td>DB name</td>
+</tr>
+<tr>
+<td><code>FORGE_ADMIN_USER</code></td>
+<td><code>admin</code></td>
+<td>Admin username</td>
+</tr>
+<tr>
+<td><code>FORGE_ALLOWED_HOSTS</code></td>
+<td><code>*</code></td>
+<td>Allowed HTTP hosts</td>
+</tr>
+<tr>
+<td><code>FORGE_NODE_NAME</code></td>
+<td><code>forge-node</code></td>
+<td>Cluster node name</td>
+</tr>
+<tr>
+<td><code>FORGE_NODE_TYPE</code></td>
+<td><code>hybrid</code></td>
+<td><code>hybrid</code> / <code>control</code> / <code>execution</code></td>
+</tr>
+<tr>
+<td><code>NGINX_HTTP_PORT</code></td>
+<td><code>80</code></td>
+<td>HTTP port</td>
+</tr>
+<tr>
+<td><code>NGINX_HTTPS_PORT</code></td>
+<td><code>443</code></td>
+<td>HTTPS port</td>
+</tr>
+<tr>
+<td><code>SESSION_COOKIE_SECURE</code></td>
+<td><code>True</code></td>
+<td>Cookie only over HTTPS</td>
+</tr>
+<tr>
+<td><code>CSRF_COOKIE_SECURE</code></td>
+<td><code>True</code></td>
+<td>CSRF cookie only over HTTPS</td>
+</tr>
+</tbody>
+</table>
+<h3 id="watch-out">Watch out</h3>
+<ul>
+<li>
+<p><strong><code>FORGE_SECRET_KEY</code> — never change it</strong> after deployment — it invalidates all sessions,
+  tokens, and encrypted credentials.</p>
+</li>
+<li>
+<p><strong><code>FORGE_CSRF_TRUSTED_ORIGINS</code></strong> must be a <strong>full URL with protocol</strong>: <code>https://forge.example.com</code>.
+  Hostname only without <code>https://</code> won't work.</p>
+</li>
+<li>
+<p>For <strong>local development without HTTPS</strong>, set <code>SESSION_COOKIE_SECURE=False</code> and <code>CSRF_COOKIE_SECURE=False</code>.</p>
+</li>
+</ul>
+<hr />
+<h2 id="django-settings-files">Django Settings Files</h2>
+<p>Loaded in order (later ones override earlier):</p>
+<div class="codehilite"><pre><span></span><code><span class="mf">1.</span><span class="w"> </span><span class="kr">for</span><span class="n">ge</span><span class="o">/</span><span class="n">settings</span><span class="o">/</span><span class="kd">def</span><span class="n">aults</span><span class="o">/*</span><span class="mf">.</span><span class="n">py</span><span class="w">       </span><span class="err">←</span><span class="w"> </span><span class="kd">Def</span><span class="n">ault</span><span class="w"> </span><span class="nb">val</span><span class="n">ues</span>
+<span class="mf">2.</span><span class="w"> </span><span class="kr">for</span><span class="n">ge</span><span class="o">/</span><span class="n">settings</span><span class="o">/</span><span class="n">production</span><span class="mf">.</span><span class="n">py</span><span class="w">       </span><span class="err">←</span><span class="w"> </span><span class="n">Production</span><span class="w"> </span><span class="n">override</span><span class="w"> </span><span class="p">(</span><span class="n">DEBUG</span><span class="o">=</span><span class="n">False</span><span class="p">)</span>
+<span class="mf">3.</span><span class="w"> </span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="kr">to</span><span class="n">wer</span><span class="o">/</span><span class="n">settings</span><span class="mf">.</span><span class="n">py</span><span class="w">             </span><span class="err">←</span><span class="w"> </span><span class="n">Root</span><span class="w"> </span><span class="n">settings</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="kr">cont</span><span class="n">ainer</span>
+<span class="mf">4.</span><span class="w"> </span><span class="o">/</span><span class="n">etc</span><span class="o">/</span><span class="kr">to</span><span class="n">wer</span><span class="o">/</span><span class="n">conf</span><span class="mf">.</span><span class="n">d</span><span class="o">/*</span><span class="mf">.</span><span class="n">py</span><span class="w">             </span><span class="err">←</span><span class="w"> </span><span class="n">Per</span><span class="o">-</span><span class="n">module</span><span class="w"> </span><span class="n">settings</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="kr">cont</span><span class="n">ainer</span>
+<span class="mf">5.</span><span class="w"> </span><span class="kd">Data</span><span class="n">base</span><span class="w"> </span><span class="n">settings</span><span class="w">                  </span><span class="err">←</span><span class="w"> </span><span class="kr">Run</span><span class="n">time</span><span class="w"> </span><span class="n">override</span><span class="w"> </span><span class="n">via</span><span class="w"> </span><span class="n">API</span>
+</code></pre></div>
+
+<h3 id="key-default-files">Key default files</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>What it controls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>defaults/base.py</code></td>
+<td>DATABASES, INSTALLED_APPS, REST_FRAMEWORK</td>
+</tr>
+<tr>
+<td><code>defaults/auth.py</code></td>
+<td>Authentication backends</td>
+</tr>
+<tr>
+<td><code>defaults/jobs.py</code></td>
+<td>Job execution defaults</td>
+</tr>
+<tr>
+<td><code>defaults/celery_conf.py</code></td>
+<td>Celery/Redis</td>
+</tr>
+<tr>
+<td><code>defaults/logging_conf.py</code></td>
+<td>Logging levels and formats</td>
+</tr>
+<tr>
+<td><code>production.py</code></td>
+<td>DEBUG=False, ALLOWED_HOSTS, security</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="database-backed-settings-changed-without-restart">Database-Backed Settings (changed without restart)</h2>
+<p>Access via API: <code>/api/v2/settings/</code></p>
+<h3 id="job-settings-apiv2settingsjobs">Job Settings (<code>/api/v2/settings/jobs/</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SCHEDULE_MAX_JOBS</code></td>
+<td><code>10</code></td>
+<td>Max concurrent runs of the same scheduled template</td>
+</tr>
+<tr>
+<td><code>AWX_TASK_ENV</code></td>
+<td><code>{}</code></td>
+<td>Extra env variables for ALL playbook runs</td>
+</tr>
+<tr>
+<td><code>DEFAULT_JOB_TIMEOUT</code></td>
+<td><code>0</code></td>
+<td>Global job timeout in seconds (0 = no limit)</td>
+</tr>
+<tr>
+<td><code>DEFAULT_INVENTORY_UPDATE_TIMEOUT</code></td>
+<td><code>0</code></td>
+<td>Inventory sync timeout</td>
+</tr>
+<tr>
+<td><code>DEFAULT_PROJECT_UPDATE_TIMEOUT</code></td>
+<td><code>0</code></td>
+<td>Project sync timeout</td>
+</tr>
+<tr>
+<td><code>MAX_FORKS</code></td>
+<td><code>200</code></td>
+<td>Maximum forks per job</td>
+</tr>
+<tr>
+<td><code>AWX_ROLES_ENABLED</code></td>
+<td><code>True</code></td>
+<td>Allow Ansible roles download</td>
+</tr>
+<tr>
+<td><code>AWX_COLLECTIONS_ENABLED</code></td>
+<td><code>True</code></td>
+<td>Allow Ansible collections download</td>
+</tr>
+<tr>
+<td><code>PROJECT_UPDATE_VVV</code></td>
+<td><code>False</code></td>
+<td>Verbose project sync output</td>
+</tr>
+</tbody>
+</table>
+<h3 id="auth-settings-apiv2settingsauthentication">Auth Settings (<code>/api/v2/settings/authentication/</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SESSION_COOKIE_AGE</code></td>
+<td><code>1800</code></td>
+<td>Session timeout in seconds (30 min)</td>
+</tr>
+<tr>
+<td><code>SESSIONS_PER_USER</code></td>
+<td><code>-1</code></td>
+<td>Max concurrent sessions (-1 = unlimited)</td>
+</tr>
+<tr>
+<td><code>AUTH_BASIC_ENABLED</code></td>
+<td><code>True</code></td>
+<td>Allow Basic auth for API</td>
+</tr>
+<tr>
+<td><code>ALLOW_OAUTH2_FOR_EXTERNAL_USERS</code></td>
+<td><code>False</code></td>
+<td>SSO users can create tokens</td>
+</tr>
+</tbody>
+</table>
+<h3 id="logging-settings-apiv2settingslogging">Logging Settings (<code>/api/v2/settings/logging/</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LOG_AGGREGATOR_HOST</code></td>
+<td><code>None</code></td>
+<td>External log collector hostname</td>
+</tr>
+<tr>
+<td><code>LOG_AGGREGATOR_PORT</code></td>
+<td><code>None</code></td>
+<td>Port</td>
+</tr>
+<tr>
+<td><code>LOG_AGGREGATOR_TYPE</code></td>
+<td><code>None</code></td>
+<td><code>logstash</code>, <code>splunk</code>, <code>loggly</code>, <code>sumologic</code></td>
+</tr>
+<tr>
+<td><code>LOG_AGGREGATOR_ENABLED</code></td>
+<td><code>False</code></td>
+<td>Enable log forwarding</td>
+</tr>
+<tr>
+<td><code>LOG_AGGREGATOR_LEVEL</code></td>
+<td><code>WARNING</code></td>
+<td>Minimum level</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="common-configuration-tasks">Common Configuration Tasks</h2>
+<h3 id="extend-session-to-8-hours">Extend session to 8 hours</h3>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-u<span class="w"> </span>admin:password<span class="w"> </span>-X<span class="w"> </span>PATCH<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;SESSION_COOKIE_AGE&quot;: 28800}&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>https://forge.example.com/api/v2/settings/authentication/
+</code></pre></div>
+
+<h3 id="set-global-job-timeout-to-1-hour">Set global job timeout to 1 hour</h3>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-u<span class="w"> </span>admin:password<span class="w"> </span>-X<span class="w"> </span>PATCH<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;DEFAULT_JOB_TIMEOUT&quot;: 3600}&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>https://forge.example.com/api/v2/settings/jobs/
+</code></pre></div>
+
+<h3 id="add-proxy-for-all-jobs">Add proxy for all jobs</h3>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-u<span class="w"> </span>admin:password<span class="w"> </span>-X<span class="w"> </span>PATCH<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;AWX_TASK_ENV&quot;: {&quot;HTTP_PROXY&quot;: &quot;http://proxy:3128&quot;, &quot;HTTPS_PROXY&quot;: &quot;http://proxy:3128&quot;}}&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>https://forge.example.com/api/v2/settings/jobs/
+</code></pre></div>
+
+<h3 id="disable-basic-auth-more-secure">Disable Basic Auth (more secure)</h3>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-u<span class="w"> </span>admin:password<span class="w"> </span>-X<span class="w"> </span>PATCH<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;AUTH_BASIC_ENABLED&quot;: false}&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>https://forge.example.com/api/v2/settings/authentication/
+</code></pre></div>
+
+<h3 id="send-logs-to-splunk">Send logs to Splunk</h3>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-u<span class="w"> </span>admin:password<span class="w"> </span>-X<span class="w"> </span>PATCH<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<span class="s1">    &quot;LOG_AGGREGATOR_HOST&quot;: &quot;splunk.example.com&quot;,</span>
+<span class="s1">    &quot;LOG_AGGREGATOR_PORT&quot;: 8088,</span>
+<span class="s1">    &quot;LOG_AGGREGATOR_TYPE&quot;: &quot;splunk&quot;,</span>
+<span class="s1">    &quot;LOG_AGGREGATOR_ENABLED&quot;: true</span>
+<span class="s1">  }&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>https://forge.example.com/api/v2/settings/logging/
+</code></pre></div>
+
+<h3 id="configure-ldap">Configure LDAP</h3>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-u<span class="w"> </span>admin:password<span class="w"> </span>-X<span class="w"> </span>PATCH<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s1">&#39;Content-Type: application/json&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<span class="s1">    &quot;AUTH_LDAP_SERVER_URI&quot;: &quot;ldaps://ldap.example.com:636&quot;,</span>
+<span class="s1">    &quot;AUTH_LDAP_BIND_DN&quot;: &quot;cn=forge,ou=services,dc=example,dc=com&quot;,</span>
+<span class="s1">    &quot;AUTH_LDAP_BIND_PASSWORD&quot;: &quot;LDAPPassword&quot;,</span>
+<span class="s1">    &quot;AUTH_LDAP_USER_SEARCH&quot;: [&quot;ou=users,dc=example,dc=com&quot;, &quot;SCOPE_SUBTREE&quot;, &quot;(uid=%(user)s)&quot;],</span>
+<span class="s1">    &quot;AUTH_LDAP_ORGANIZATION_MAP&quot;: {</span>
+<span class="s1">      &quot;Default&quot;: {&quot;users&quot;: true, &quot;remove_users&quot;: false}</span>
+<span class="s1">    }</span>
+<span class="s1">  }&#39;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>https://forge.example.com/api/v2/settings/ldap/
+</code></pre></div>
+
+<hr />
+<h2 id="performance-tuning">Performance Tuning</h2>
+<h3 id="uwsgi-workers">uWSGI Workers</h3>
+<div class="codehilite"><pre><span></span><code><span class="k">proc</span><span class="nv">esses</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5</span><span class="w">      </span><span class="err">#</span><span class="w"> </span><span class="nv">Default.</span><span class="w"> </span><span class="nv">Increase</span><span class="w"> </span><span class="nv">to</span><span class="w"> </span><span class="mi">8</span><span class="o">-</span><span class="mi">16</span><span class="w"> </span><span class="nv">for</span><span class="w"> </span><span class="nv">high</span><span class="w"> </span><span class="nv">traffic.</span>
+<span class="nf">harakiri</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">120</span><span class="w">     </span><span class="err">#</span><span class="w"> </span><span class="nv">Worker</span><span class="w"> </span><span class="nv">timeout</span><span class="w"> </span><span class="p">(</span><span class="nv">seconds</span><span class="p">)</span>
+<span class="nf">max</span><span class="o">-</span><span class="nv">requests</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1000</span><span class="w">  </span><span class="err">#</span><span class="w"> </span><span class="nv">Restart</span><span class="w"> </span><span class="nv">worker</span><span class="w"> </span><span class="nv">after</span><span class="w"> </span><span class="nv">N</span><span class="w"> </span><span class="nv">requests</span>
+</code></pre></div>
+
+<h3 id="node-capacity">Node Capacity</h3>
+<div class="codehilite"><pre><span></span><code>CPU capacity  = CPU cores × 4
+RAM capacity  = RAM (MB) / 100
+Effective     = whichever is smaller
+</code></pre></div>
+
+<p><strong>Example: 8 cores, 16GB RAM</strong> → 32 forks → ~6 jobs with 5 forks each simultaneously</p>
+<h3 id="recommended-hardware">Recommended Hardware</h3>
+<table>
+<thead>
+<tr>
+<th>Size</th>
+<th>CPU</th>
+<th>RAM</th>
+<th>Disk</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Small (≤100 hosts)</td>
+<td>4</td>
+<td>8GB</td>
+<td>50GB SSD</td>
+</tr>
+<tr>
+<td>Medium (≤1000)</td>
+<td>8</td>
+<td>16GB</td>
+<td>100GB SSD</td>
+</tr>
+<tr>
+<td>Large (≤10000)</td>
+<td>16</td>
+<td>32GB</td>
+<td>200GB SSD</td>
+</tr>
+<tr>
+<td>Enterprise (10000+)</td>
+<td>16+</td>
+<td>64GB+</td>
+<td>500GB SSD</td>
+</tr>
+</tbody>
+</table>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

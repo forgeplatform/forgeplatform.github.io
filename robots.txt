@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://forgeplatform.github.io/sitemap.xml

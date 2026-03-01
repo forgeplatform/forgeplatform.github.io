@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Trail — Forge Platform Docs</title>
+  <meta name="description" content="Audit Trail documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/audit-trail.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="14-improved-audit-trail">14 — Improved Audit Trail</h1>
+<p>Forge provides two complementary audit mechanisms:</p>
+<ol>
+<li><strong>Activity Stream</strong> — existing change log (create/update/delete/associate), now enhanced with IP, User-Agent, and session tracking</li>
+<li><strong>Audit Events</strong> — new immutable, append-only security audit log for compliance-grade auditing</li>
+</ol>
+<hr />
+<h2 id="activity-stream-enhancements">Activity Stream Enhancements</h2>
+<p>The existing <code>ActivityStream</code> model now captures request metadata on every entry:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>actor_ip</code></td>
+<td>GenericIPAddressField</td>
+<td>IP address of the actor (supports X-Forwarded-For)</td>
+</tr>
+<tr>
+<td><code>actor_user_agent</code></td>
+<td>CharField(512)</td>
+<td>User-Agent header from the request</td>
+</tr>
+<tr>
+<td><code>actor_session_id</code></td>
+<td>CharField(64)</td>
+<td>Django session ID at the time of the event</td>
+</tr>
+</tbody>
+</table>
+<p>These fields are automatically populated by <code>RequestContextMiddleware</code> which
+extracts the data from each incoming HTTP request and stores it in thread-local
+storage. The <code>ActivityStream.save()</code> method reads from this context on first save.</p>
+<h3 id="api-response">API Response</h3>
+<p>Activity stream entries now include the new fields in the API response:</p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">123</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-04-02T12:00:00Z&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;operation&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;update&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;actor_ip&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;203.0.113.50&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;actor_user_agent&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Mozilla/5.0 ...&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;actor_session_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abc123def456&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;changes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;summary_fields&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;actor&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;admin&quot;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<hr />
+<h2 id="audit-events-auditevent-model">Audit Events (AuditEvent Model)</h2>
+<h3 id="overview">Overview</h3>
+<p><code>AuditEvent</code> is a new, immutable audit log model designed for compliance and
+security auditing. Unlike Activity Stream (which tracks all CRUD operations),
+Audit Events focus on security-sensitive operations:</p>
+<ul>
+<li><strong>Authentication</strong> — login, logout, login failures, token creation</li>
+<li><strong>Credential Access</strong> — who used which credential, when, for which job</li>
+<li><strong>Permission Changes</strong> — role grants, role revocations, team membership changes</li>
+<li><strong>System Events</strong> — configuration changes, maintenance operations</li>
+</ul>
+<h3 id="immutability">Immutability</h3>
+<p>Audit events are append-only:
+- <code>save()</code> raises <code>ValueError</code> if the entry already has a primary key (no updates)
+- <code>delete()</code> raises <code>ValueError</code> (no deletions)
+- Records can only be created, never modified or removed</p>
+<h3 id="model-fields">Model Fields</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>timestamp</code></td>
+<td>DateTimeField</td>
+<td>Auto-populated creation time (indexed)</td>
+</tr>
+<tr>
+<td><code>actor</code></td>
+<td>ForeignKey(User)</td>
+<td>User who triggered the event (nullable)</td>
+</tr>
+<tr>
+<td><code>actor_username</code></td>
+<td>CharField</td>
+<td>Denormalized username (survives user deletion)</td>
+</tr>
+<tr>
+<td><code>actor_ip</code></td>
+<td>GenericIPAddressField</td>
+<td>Source IP address</td>
+</tr>
+<tr>
+<td><code>actor_user_agent</code></td>
+<td>CharField(512)</td>
+<td>User-Agent string</td>
+</tr>
+<tr>
+<td><code>actor_session_id</code></td>
+<td>CharField(64)</td>
+<td>Session ID</td>
+</tr>
+<tr>
+<td><code>category</code></td>
+<td>CharField</td>
+<td><code>auth</code>, <code>credential_access</code>, <code>permission_change</code>, <code>resource_change</code>, <code>system</code></td>
+</tr>
+<tr>
+<td><code>severity</code></td>
+<td>CharField</td>
+<td><code>info</code>, <code>warning</code>, <code>critical</code></td>
+</tr>
+<tr>
+<td><code>action</code></td>
+<td>CharField</td>
+<td>Specific action, e.g. <code>login</code>, <code>credential_used</code>, <code>role_granted</code></td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>TextField</td>
+<td>Human-readable event description</td>
+</tr>
+<tr>
+<td><code>resource_type</code></td>
+<td>CharField</td>
+<td>Affected resource type (e.g. <code>credential</code>, <code>team</code>)</td>
+</tr>
+<tr>
+<td><code>resource_id</code></td>
+<td>IntegerField</td>
+<td>ID of affected resource</td>
+</tr>
+<tr>
+<td><code>resource_name</code></td>
+<td>CharField</td>
+<td>Name of affected resource (denormalized)</td>
+</tr>
+<tr>
+<td><code>action_node</code></td>
+<td>CharField</td>
+<td>Cluster node where event occurred</td>
+</tr>
+<tr>
+<td><code>detail</code></td>
+<td>JSONField</td>
+<td>Additional structured data</td>
+</tr>
+<tr>
+<td><code>organization</code></td>
+<td>ForeignKey</td>
+<td>Organization scope (for RBAC filtering)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="api-endpoints">API Endpoints</h2>
+<h3 id="list-audit-events">List Audit Events</h3>
+<div class="codehilite"><pre><span></span><code>GET /api/v2/audit_events/
+</code></pre></div>
+
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>category</code></td>
+<td>Filter by category: <code>auth</code>, <code>credential_access</code>, <code>permission_change</code>, <code>resource_change</code>, <code>system</code></td>
+</tr>
+<tr>
+<td><code>severity</code></td>
+<td>Filter by severity: <code>info</code>, <code>warning</code>, <code>critical</code></td>
+</tr>
+<tr>
+<td><code>action</code></td>
+<td>Filter by specific action string</td>
+</tr>
+<tr>
+<td><code>actor__username</code></td>
+<td>Filter by actor username</td>
+</tr>
+<tr>
+<td><code>resource_type</code></td>
+<td>Filter by resource type</td>
+</tr>
+<tr>
+<td><code>resource_id</code></td>
+<td>Filter by resource ID</td>
+</tr>
+<tr>
+<td><code>timestamp__gte</code></td>
+<td>Events after this ISO datetime</td>
+</tr>
+<tr>
+<td><code>timestamp__lte</code></td>
+<td>Events before this ISO datetime</td>
+</tr>
+<tr>
+<td><code>organization</code></td>
+<td>Filter by organization ID</td>
+</tr>
+<tr>
+<td><code>format</code></td>
+<td>Response format: <code>json</code> (default), <code>csv</code>, <code>siem</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="export-formats">Export Formats</h3>
+<p><strong>CSV Export:</strong></p>
+<div class="codehilite"><pre><span></span><code>GET /api/v2/audit_events/?format=csv
+</code></pre></div>
+
+<p>Returns a streaming CSV download (max 10,000 rows) with columns:
+id, timestamp, actor_username, actor_ip, category, severity, action,
+description, resource_type, resource_id, resource_name, action_node.</p>
+<p><strong>SIEM JSON Export:</strong></p>
+<div class="codehilite"><pre><span></span><code>GET /api/v2/audit_events/?format=siem
+</code></pre></div>
+
+<p>Returns flat JSON optimized for SIEM ingestion (Splunk, ELK, Datadog):
+- <code>detail</code> dict fields are flattened with <code>detail_</code> prefix
+- <code>source: "forge"</code> and <code>event_type: "&lt;category&gt;.&lt;action&gt;"</code> are added
+- No nested objects — every field is at the top level</p>
+<h3 id="detail">Detail</h3>
+<div class="codehilite"><pre><span></span><code>GET /api/v2/audit_events/{id}/
+</code></pre></div>
+
+<h3 id="permissions">Permissions</h3>
+<ul>
+<li><strong>Superusers and System Auditors</strong>: see all audit events</li>
+<li><strong>Regular users</strong>: only see events in their organizations</li>
+</ul>
+<hr />
+<h2 id="credential-access-logging">Credential Access Logging</h2>
+<p>When a job is created and uses credentials, each credential access is
+automatically logged as an audit event:</p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;category&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;credential_access&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;action&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;credential_used&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;severity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;info&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;actor_username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;admin&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;actor_ip&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;10.0.1.5&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;resource_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;credential&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;resource_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;resource_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Production SSH Key&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Credential \&quot;Production SSH Key\&quot; (id=42) used for Job #100&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;detail&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;job_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;job_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Job&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;credential_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Machine&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;credential_type_kind&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ssh&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>This logging happens in <code>forge/main/signals.py</code> in the <code>activity_stream_create</code>
+handler when a <code>Job</code> instance is created.</p>
+<hr />
+<h2 id="utility-functions">Utility Functions</h2>
+<p>Located in <code>forge/main/utils/audit.py</code>:</p>
+<div class="codehilite"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">forge.main.utils.audit</span><span class="w"> </span><span class="kn">import</span> <span class="n">log_credential_access</span><span class="p">,</span> <span class="n">log_auth_event</span><span class="p">,</span> <span class="n">log_permission_change</span>
+
+<span class="c1"># Log credential usage</span>
+<span class="n">log_credential_access</span><span class="p">(</span><span class="n">credential</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="n">job</span><span class="p">,</span> <span class="n">actor</span><span class="o">=</span><span class="n">user</span><span class="p">)</span>
+
+<span class="c1"># Log authentication event</span>
+<span class="n">log_auth_event</span><span class="p">(</span><span class="s1">&#39;login&#39;</span><span class="p">,</span> <span class="n">actor</span><span class="o">=</span><span class="n">user</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s1">&#39;User logged in from 10.0.1.5&#39;</span><span class="p">)</span>
+<span class="n">log_auth_event</span><span class="p">(</span><span class="s1">&#39;login_failed&#39;</span><span class="p">,</span> <span class="n">severity</span><span class="o">=</span><span class="s1">&#39;warning&#39;</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s1">&#39;Invalid password for admin&#39;</span><span class="p">)</span>
+
+<span class="c1"># Log permission change</span>
+<span class="n">log_permission_change</span><span class="p">(</span><span class="s1">&#39;role_granted&#39;</span><span class="p">,</span> <span class="n">actor</span><span class="o">=</span><span class="n">admin</span><span class="p">,</span> <span class="n">resource_type</span><span class="o">=</span><span class="s1">&#39;team&#39;</span><span class="p">,</span>
+                      <span class="n">resource_id</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">resource_name</span><span class="o">=</span><span class="s1">&#39;DevOps&#39;</span><span class="p">,</span>
+                      <span class="n">detail</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;role&#39;</span><span class="p">:</span> <span class="s1">&#39;admin&#39;</span><span class="p">,</span> <span class="s1">&#39;target_user&#39;</span><span class="p">:</span> <span class="s1">&#39;john&#39;</span><span class="p">})</span>
+</code></pre></div>
+
+<p>All utility functions catch exceptions internally and log them — they never
+cause the calling operation to fail.</p>
+<hr />
+<h2 id="middleware">Middleware</h2>
+<p><code>RequestContextMiddleware</code> in <code>forge/main/middleware.py</code>:</p>
+<ul>
+<li>Extracts IP (from <code>X-Forwarded-For</code> or <code>REMOTE_ADDR</code>), User-Agent, and session ID</li>
+<li>Stores in thread-local storage for signal handlers to read</li>
+<li>Cleans up after each response</li>
+<li>Must be placed after <code>AuthenticationMiddleware</code> in <code>MIDDLEWARE</code> setting</li>
+</ul>
+<hr />
+<h2 id="frontend">Frontend</h2>
+<p>The Audit Log page is available at <code>/audit</code> in the Forge UI:</p>
+<ul>
+<li><strong>Filters</strong>: category, severity, username, resource type</li>
+<li><strong>Expandable rows</strong>: click to see IP, user agent, session ID, node, detail JSON</li>
+<li><strong>CSV export</strong>: download button for filtered results</li>
+<li><strong>Pagination</strong>: configurable page size (10/25/50)</li>
+<li><strong>Navigation</strong>: accessible from sidebar under "Views" section</li>
+</ul>
+<p>The Activity Stream page (<code>/activity</code>) also displays the new IP and
+user agent fields where available.</p>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

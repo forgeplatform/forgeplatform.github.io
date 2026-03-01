@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Self-Service Portal — Forge Platform Docs</title>
+  <meta name="description" content="Self-Service Portal documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/self-service.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="17-self-service-portal">17 — Self-Service Portal</h1>
+<p>End-user friendly catalog of curated automations with optional approval
+workflow. Lets non-operator users (developers, app teams) request
+existing Job Templates / Workflow Templates without direct AWX access,
+and routes the request through approval before execution.</p>
+<hr />
+<h2 id="architecture">Architecture</h2>
+<div class="codehilite"><pre><span></span><code><span class="n">Admin</span><span class="w"> </span><span class="n">curates</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">catalog</span><span class="w"> </span><span class="n">item</span><span class="w"> </span><span class="err">────────────────┐</span>
+<span class="w">                                             </span><span class="err">│</span>
+<span class="w">                                             </span><span class="err">▼</span>
+<span class="n">ServiceCatalogItem</span><span class="w"> </span><span class="p">(</span><span class="n">wraps</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="n">JT</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="n">WFJT</span><span class="p">)</span><span class="w">      </span><span class="err">│</span>
+<span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">icon</span><span class="p">,</span><span class="w"> </span><span class="n">category</span><span class="p">,</span><span class="w"> </span><span class="n">tags</span><span class="w">                  </span><span class="err">│</span>
+<span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">requires_approval</span><span class="w">                     </span><span class="err">│</span>
+<span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="n">approver_team</span><span class="w"> </span><span class="p">(</span><span class="n">optional</span><span class="p">)</span><span class="w">              </span><span class="err">│</span>
+<span class="w">                                             </span><span class="err">│</span>
+<span class="w">                                             </span><span class="err">▼</span>
+<span class="n">End</span><span class="w"> </span><span class="n">user</span><span class="w"> </span><span class="n">opens</span><span class="w"> </span><span class="n">Service</span><span class="w"> </span><span class="n">Portal</span><span class="p">,</span><span class="w"> </span><span class="n">picks</span><span class="w"> </span><span class="n">item</span><span class="p">,</span><span class="w"> </span><span class="n">fills</span>
+<span class="n">multi</span><span class="o">-</span><span class="n">step</span><span class="w"> </span><span class="n">dialog</span><span class="w"> </span><span class="p">(</span><span class="n">justification</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">wf</span><span class="w"> </span><span class="n">survey</span><span class="w"> </span><span class="err">→</span>
+<span class="n">per</span><span class="o">-</span><span class="n">node</span><span class="w"> </span><span class="n">surveys</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">confirm</span><span class="p">)</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="n">submits</span><span class="o">.</span>
+
+<span class="w">         </span><span class="err">│</span>
+<span class="w">         </span><span class="err">▼</span>
+<span class="n">ServiceRequest</span><span class="o">.</span><span class="n">submit</span><span class="p">()</span>
+<span class="w">   </span><span class="err">│</span>
+<span class="w">   </span><span class="err">├─</span><span class="w"> </span><span class="n">requires_approval</span><span class="o">=</span><span class="n">False</span><span class="w"> </span><span class="err">──►</span><span class="w"> </span><span class="n">_launch</span><span class="p">()</span><span class="w"> </span><span class="err">──►</span><span class="w"> </span><span class="n">JT</span><span class="o">/</span><span class="n">WFJT</span><span class="o">.</span><span class="n">create_unified_job</span><span class="p">()</span>
+<span class="w">   </span><span class="err">│</span><span class="w">                                          </span><span class="p">(</span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="n">running</span><span class="p">)</span>
+<span class="w">   </span><span class="err">│</span>
+<span class="w">   </span><span class="err">└─</span><span class="w"> </span><span class="n">requires_approval</span><span class="o">=</span><span class="n">True</span><span class="w">  </span><span class="err">──►</span><span class="w"> </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="n">pending_approval</span>
+<span class="w">                                  </span><span class="n">approver</span><span class="w"> </span><span class="n">inbox</span><span class="w"> </span><span class="n">shows</span><span class="w"> </span><span class="n">it</span>
+<span class="w">                                       </span><span class="err">│</span>
+<span class="w">                          </span><span class="err">┌────────────┴────────────┐</span>
+<span class="w">                          </span><span class="err">▼</span><span class="w">                         </span><span class="err">▼</span>
+<span class="w">                 </span><span class="n">approve</span><span class="p">(</span><span class="n">user</span><span class="p">)</span><span class="w"> </span><span class="err">─►</span><span class="w"> </span><span class="n">_launch</span><span class="p">()</span><span class="w">    </span><span class="n">reject</span><span class="p">(</span><span class="n">user</span><span class="p">,</span><span class="w"> </span><span class="n">reason</span><span class="p">)</span>
+<span class="w">                                  </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="n">running</span><span class="w">    </span><span class="n">status</span><span class="p">:</span><span class="w"> </span><span class="n">rejected</span>
+
+<span class="w">         </span><span class="err">▼</span>
+<span class="n">UnifiedJob</span><span class="w"> </span><span class="n">runs</span><span class="w"> </span><span class="n">to</span><span class="w"> </span><span class="n">completion</span><span class="o">.</span>
+<span class="n">A</span><span class="w"> </span><span class="n">post_save</span><span class="w"> </span><span class="k">signal</span><span class="w"> </span><span class="n">on</span><span class="w"> </span><span class="n">UnifiedJob</span><span class="w"> </span><span class="n">mirrors</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">terminal</span>
+<span class="n">status</span><span class="w"> </span><span class="p">(</span><span class="n">successful</span><span class="o">/</span><span class="n">failed</span><span class="o">/</span><span class="n">canceled</span><span class="p">)</span><span class="w"> </span><span class="n">back</span><span class="w"> </span><span class="n">onto</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">linked</span>
+<span class="n">ServiceRequest</span><span class="w"> </span><span class="n">via</span><span class="w"> </span><span class="n">sync_status_from_job</span><span class="p">()</span><span class="o">.</span>
+</code></pre></div>
+
+<p>The portal sits on top of existing template execution machinery — there is
+no duplication of launch logic. <code>_launch()</code> calls
+<code>JobTemplate.create_unified_job()</code> / <code>WorkflowJobTemplate.create_unified_job()</code>
+exactly the same way the standard <code>/launch/</code> endpoint does, including
+honoring <code>node_survey_data</code> for workflows (which was added in the Workflow
+Node Surveys feature).</p>
+<hr />
+<h2 id="models">Models</h2>
+<p><code>forge/main/models/service_catalog.py</code></p>
+<h3 id="servicecatalogitemcommonmodelnamenotunique"><code>ServiceCatalogItem(CommonModelNameNotUnique)</code></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>organization</code></td>
+<td>FK Organization (scopes visibility)</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>unique per org</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>free text</td>
+</tr>
+<tr>
+<td><code>icon</code></td>
+<td>lucide icon name shown in portal cards</td>
+</tr>
+<tr>
+<td><code>category</code></td>
+<td>indexed; used for grouping/filtering</td>
+</tr>
+<tr>
+<td><code>tags</code></td>
+<td>JSON list, free-form</td>
+</tr>
+<tr>
+<td><code>job_template</code></td>
+<td>FK; <strong>exactly one</strong> of jt/wfjt set (validated in <code>clean()</code>)</td>
+</tr>
+<tr>
+<td><code>workflow_job_template</code></td>
+<td>FK; the other side</td>
+</tr>
+<tr>
+<td><code>requires_approval</code></td>
+<td>bool</td>
+</tr>
+<tr>
+<td><code>approver_team</code></td>
+<td>FK Team; null = falls back to org admins</td>
+</tr>
+<tr>
+<td><code>enabled</code></td>
+<td>bool; disabled items are hidden from portal</td>
+</tr>
+</tbody>
+</table>
+<p>Helper props: <code>underlying_template</code>, <code>is_workflow</code>.</p>
+<h3 id="servicerequestcreatedmodifiedmodel"><code>ServiceRequest(CreatedModifiedModel)</code></h3>
+<p>State machine:</p>
+<div class="codehilite"><pre><span></span><code>              submit()
+   created ──────────────┐
+                         │
+                         ▼
+   pending_approval ─approve()─► approved ─_launch()─► running ─sync─► successful
+        │                                                    │
+        └─reject()─► rejected                                 ├─► failed
+                                                              └─► canceled
+</code></pre></div>
+
+<p>Methods:</p>
+<ul>
+<li><code>submit()</code> — entry point. If <code>requires_approval=False</code>, auto-approves and launches.</li>
+<li><code>can_user_approve(user)</code> — superuser ✓ ; member of <code>approver_team</code> ✓ ; org admin (fallback when no team) ✓.</li>
+<li><code>approve(user)</code> — checks status + perms, calls <code>_launch()</code>.</li>
+<li><code>reject(user, reason)</code> — terminal <code>rejected</code> state.</li>
+<li><code>_launch()</code> — calls <code>template.create_unified_job(extra_vars=…, node_survey_data=…)</code>, stores returned UJ, transitions to <code>running</code>, then <code>signal_start()</code>.</li>
+<li><code>sync_status_from_job()</code> — invoked by post_save signal handler; mirrors UJ terminal status.</li>
+</ul>
+<p><code>TERMINAL_STATUSES = ('rejected', 'successful', 'failed', 'canceled')</code></p>
+<h3 id="status-propagation">Status propagation</h3>
+<p>A module-level <code>post_save</code> receiver in <code>service_catalog.py</code> listens for any
+<code>UnifiedJob</code> save, filters to terminal statuses, finds linked
+<code>ServiceRequest</code>s, and calls <code>sync_status_from_job()</code>. This works for both
+<code>Job</code> and <code>WorkflowJob</code> without touching task code.</p>
+<hr />
+<h2 id="permissions-registration">Permissions &amp; registration</h2>
+<p><code>forge/main/models/__init__.py</code>:</p>
+<ul>
+<li><code>permission_registry.register(..., ServiceCatalogItem)</code> — org-scoped RBAC</li>
+<li><code>activity_stream_registrar.connect(ServiceCatalogItem)</code></li>
+<li><code>activity_stream_registrar.connect(ServiceRequest)</code></li>
+</ul>
+<p>End-users with read on the catalog item's organization can browse and submit;
+approval requires <code>approver_team</code> membership or org admin.</p>
+<hr />
+<h2 id="rest-api">REST API</h2>
+<p>Mounted under <code>/api/v2/service_catalog_items/</code> and <code>/api/v2/service_requests/</code>.</p>
+<h3 id="catalog-items">Catalog items</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/service_catalog_items/</code></td>
+<td>list (filters: <code>category</code>, <code>enabled</code>, <code>organization</code>, <code>search</code>)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/service_catalog_items/</code></td>
+<td>create</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/service_catalog_items/{id}/</code></td>
+<td>detail</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/v2/service_catalog_items/{id}/</code></td>
+<td>update</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v2/service_catalog_items/{id}/</code></td>
+<td>delete</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/service_catalog_items/{id}/launch_data/</code></td>
+<td>merged survey spec from underlying JT/WFJT, plus per-node surveys for workflows</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/service_catalog_items/{id}/requests/</code></td>
+<td>requests for this item (admin)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/service_catalog_items/{id}/submit/</code></td>
+<td>end-user submission entry point</td>
+</tr>
+</tbody>
+</table>
+<h3 id="service-requests">Service requests</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/service_requests/</code></td>
+<td>list (filters: <code>mine</code>, <code>status</code>, <code>catalog_item</code>)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/service_requests/pending_approvals/</code></td>
+<td>approval inbox (filtered to caller's authority)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/service_requests/{id}/</code></td>
+<td>detail</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v2/service_requests/{id}/</code></td>
+<td>only allowed in <code>pending_approval</code> / <code>rejected</code> state</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/service_requests/{id}/approve/</code></td>
+<td>approve + launch</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/service_requests/{id}/reject/</code></td>
+<td>reject (<code>{reason}</code>)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="submit-payload">Submit payload</h3>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;extra_vars&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;hostname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;web03&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;node_survey_data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;deploy_node&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2.0&quot;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;justification&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nginx /health failing on web03&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p><code>node_survey_data</code> is keyed by node <code>identifier</code> and used only for
+workflow-backed catalog items.</p>
+<h3 id="launch-data-response">Launch data response</h3>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;catalog_item&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;requires_approval&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;is_workflow&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;survey_enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;survey_spec&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;spec&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="err">...</span><span class="p">]</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;ask_variables_on_launch&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;node_surveys&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;node_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;deploy&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;survey_spec&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;spec&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="err">...</span><span class="p">]</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>The frontend uses this to render the multi-step request dialog.</p>
+<hr />
+<h2 id="tests">Tests</h2>
+<p><code>tests_standalone/test_service_catalog.py</code> (22 tests, no Django bootstrap):</p>
+<ul>
+<li><code>submit()</code> with/without approval, launch failure → <code>failed</code></li>
+<li><code>can_user_approve</code> matrix: superuser, team member, non-member, org admin fallback, unauthenticated</li>
+<li><code>approve()</code> / <code>reject()</code> permission checks and terminal-state guards</li>
+<li><code>sync_status_from_job()</code> mapping for successful / failed / error / canceled / intermediate</li>
+<li>Workflow node_survey_data passthrough vs. JT-only path</li>
+</ul>
+<p>Run with: <code>python -m unittest tests_standalone.test_service_catalog -v</code></p>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

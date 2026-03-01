@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Event-Driven Automation — Forge Platform Docs</title>
+  <meta name="description" content="Event-Driven Automation documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/event-driven.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="event-driven-automation-eda">Event-Driven Automation (EDA)</h1>
+<p>Forge EDA enables webhook-based event routing with user-defined rules.
+When an external system sends a webhook (GitHub push, Alertmanager alert,
+PagerDuty incident, etc.), Forge evaluates conditions and automatically
+launches job templates, workflows, or sends notifications.</p>
+<hr />
+<h2 id="architecture">Architecture</h2>
+<div class="codehilite"><pre><span></span><code>External System ──POST──&gt; /api/v2/eda_webhooks/&lt;path&gt;/
+                              │
+                              ├── HMAC signature verification
+                              ├── EventLog created (status: received)
+                              └── Celery task dispatched
+                                      │
+                                      ├── Evaluate Jinja2 conditions
+                                      ├── If matched: execute actions
+                                      │   ├── Launch JobTemplate
+                                      │   ├── Launch WorkflowJobTemplate
+                                      │   └── Send NotificationTemplate
+                                      └── Log results + AuditEvent
+</code></pre></div>
+
+<p>Outbound webhooks work in reverse — when a job completes, Forge POSTs
+a signed JSON payload to configured external URLs.</p>
+<hr />
+<h2 id="models">Models</h2>
+<h3 id="eventrule">EventRule</h3>
+<p>The core model. Maps a webhook endpoint to conditions and actions.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>name</td>
+<td>CharField</td>
+<td>Rule name (unique per organization)</td>
+</tr>
+<tr>
+<td>organization</td>
+<td>FK(Organization)</td>
+<td>RBAC scoping</td>
+</tr>
+<tr>
+<td>enabled</td>
+<td>BooleanField</td>
+<td>Active/inactive toggle</td>
+</tr>
+<tr>
+<td>source_type</td>
+<td>CharField</td>
+<td><code>webhook_generic</code>, <code>webhook_github</code>, <code>webhook_gitlab</code>, <code>alertmanager</code>, <code>pagerduty</code>, <code>datadog</code>, <code>cloudwatch</code></td>
+</tr>
+<tr>
+<td>webhook_path</td>
+<td>SlugField(unique)</td>
+<td>URL path segment: <code>/api/v2/eda_webhooks/&lt;path&gt;/</code></td>
+</tr>
+<tr>
+<td>webhook_key</td>
+<td>CharField</td>
+<td>HMAC shared secret (auto-generated)</td>
+</tr>
+<tr>
+<td>conditions</td>
+<td>JSONField</td>
+<td>List of <code>{jinja2_expression, description}</code></td>
+</tr>
+<tr>
+<td>actions</td>
+<td>JSONField</td>
+<td>List of <code>{action_type, target_id, extra_vars, description}</code></td>
+</tr>
+<tr>
+<td>throttle_seconds</td>
+<td>IntegerField</td>
+<td>Min interval between firings (0 = no limit)</td>
+</tr>
+<tr>
+<td>last_fired_at</td>
+<td>DateTimeField</td>
+<td>Last firing timestamp</td>
+</tr>
+<tr>
+<td>fire_count</td>
+<td>IntegerField</td>
+<td>Total firing count</td>
+</tr>
+</tbody>
+</table>
+<h3 id="eventlog">EventLog</h3>
+<p>Immutable log of every received webhook and its evaluation outcome.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>event_rule</td>
+<td>FK(EventRule)</td>
+<td>Associated rule (nullable)</td>
+</tr>
+<tr>
+<td>event_rule_name</td>
+<td>CharField</td>
+<td>Denormalized (preserved after deletion)</td>
+</tr>
+<tr>
+<td>source_type</td>
+<td>CharField</td>
+<td>Source type at time of event</td>
+</tr>
+<tr>
+<td>source_ip</td>
+<td>GenericIPAddress</td>
+<td>Sender IP</td>
+</tr>
+<tr>
+<td>event_type</td>
+<td>CharField</td>
+<td>e.g. <code>push</code>, <code>pull_request</code>, <code>alert</code></td>
+</tr>
+<tr>
+<td>event_guid</td>
+<td>CharField</td>
+<td>Unique ID for deduplication</td>
+</tr>
+<tr>
+<td>payload</td>
+<td>JSONField</td>
+<td>Raw webhook body</td>
+</tr>
+<tr>
+<td>headers</td>
+<td>JSONField</td>
+<td>Relevant HTTP headers</td>
+</tr>
+<tr>
+<td>conditions_matched</td>
+<td>BooleanField</td>
+<td>Whether all conditions passed</td>
+</tr>
+<tr>
+<td>condition_results</td>
+<td>JSONField</td>
+<td>Per-condition eval results</td>
+</tr>
+<tr>
+<td>actions_triggered</td>
+<td>JSONField</td>
+<td>Per-action exec results</td>
+</tr>
+<tr>
+<td>status</td>
+<td>CharField</td>
+<td><code>received</code>, <code>matched</code>, <code>unmatched</code>, <code>throttled</code>, <code>action_fired</code>, <code>action_failed</code>, <code>error</code>, <code>signature_failed</code></td>
+</tr>
+<tr>
+<td>job_id</td>
+<td>IntegerField</td>
+<td>Launched job ID (if applicable)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="outboundwebhook">OutboundWebhook</h3>
+<p>Push job status changes to external systems.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>name</td>
+<td>CharField</td>
+<td>Webhook name</td>
+</tr>
+<tr>
+<td>organization</td>
+<td>FK(Organization)</td>
+<td>RBAC scoping</td>
+</tr>
+<tr>
+<td>url</td>
+<td>URLField</td>
+<td>Target URL</td>
+</tr>
+<tr>
+<td>webhook_key</td>
+<td>CharField</td>
+<td>HMAC signing secret</td>
+</tr>
+<tr>
+<td>events</td>
+<td>JSONField</td>
+<td>List: <code>job.started</code>, <code>job.succeeded</code>, <code>job.failed</code>, <code>job.canceled</code>, <code>workflow.started</code>, <code>workflow.succeeded</code>, <code>workflow.failed</code></td>
+</tr>
+<tr>
+<td>custom_headers</td>
+<td>JSONField</td>
+<td>Extra headers to include</td>
+</tr>
+<tr>
+<td>enabled</td>
+<td>BooleanField</td>
+<td>Active toggle</td>
+</tr>
+<tr>
+<td>ssl_verify</td>
+<td>BooleanField</td>
+<td>Verify target SSL</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="api-endpoints">API Endpoints</h2>
+<h3 id="event-rules">Event Rules</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>URL</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/event_rules/</code></td>
+<td>List rules</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/event_rules/</code></td>
+<td>Create rule</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/event_rules/{id}/</code></td>
+<td>Rule detail</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/v2/event_rules/{id}/</code></td>
+<td>Update rule</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v2/event_rules/{id}/</code></td>
+<td>Delete rule</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/event_rules/{id}/webhook_key/</code></td>
+<td>Get webhook key</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/event_rules/{id}/webhook_key/</code></td>
+<td>Rotate key</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/event_rules/{id}/event_logs/</code></td>
+<td>Logs for this rule</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/event_rules/{id}/test/</code></td>
+<td>Dry-run test</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/event_rules/{id}/enable/</code></td>
+<td>Enable rule</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/event_rules/{id}/disable/</code></td>
+<td>Disable rule</td>
+</tr>
+</tbody>
+</table>
+<h3 id="event-logs">Event Logs</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>URL</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/event_logs/</code></td>
+<td>List logs</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/event_logs/{id}/</code></td>
+<td>Log detail</td>
+</tr>
+</tbody>
+</table>
+<h3 id="outbound-webhooks">Outbound Webhooks</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>URL</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/outbound_webhooks/</code></td>
+<td>List webhooks</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/outbound_webhooks/</code></td>
+<td>Create webhook</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v2/outbound_webhooks/{id}/</code></td>
+<td>Detail</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/v2/outbound_webhooks/{id}/</code></td>
+<td>Update</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v2/outbound_webhooks/{id}/</code></td>
+<td>Delete</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/outbound_webhooks/{id}/test/</code></td>
+<td>Send test payload</td>
+</tr>
+</tbody>
+</table>
+<h3 id="public-receiver">Public Receiver</h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>URL</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v2/eda_webhooks/{webhook_path}/</code></td>
+<td>Receive webhook (no auth, HMAC verified)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="conditions-jinja2">Conditions (Jinja2)</h2>
+<p>Conditions are Jinja2 expressions evaluated against the webhook payload.
+All conditions must match (AND logic). Empty conditions = always match.</p>
+<p><strong>Context variables:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>event</code></td>
+<td>The webhook JSON payload</td>
+</tr>
+<tr>
+<td><code>headers</code></td>
+<td>Relevant HTTP headers</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># GitHub: only PR opened events</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">jinja2_expression</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;event.action</span><span class="nv"> </span><span class="s">==</span><span class="nv"> </span><span class="s">&#39;opened&#39;&quot;</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Pull</span><span class="nv"> </span><span class="s">request</span><span class="nv"> </span><span class="s">opened&quot;</span>
+
+<span class="c1"># Alertmanager: only firing alerts for production</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">jinja2_expression</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;event.status</span><span class="nv"> </span><span class="s">==</span><span class="nv"> </span><span class="s">&#39;firing&#39;&quot;</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Alert</span><span class="nv"> </span><span class="s">is</span><span class="nv"> </span><span class="s">firing&quot;</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">jinja2_expression</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&#39;production&#39;</span><span class="nv"> </span><span class="s">in</span><span class="nv"> </span><span class="s">event.commonLabels.environment&quot;</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Production</span><span class="nv"> </span><span class="s">environment&quot;</span>
+
+<span class="c1"># Generic: check for specific field value</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">jinja2_expression</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;event.severity</span><span class="nv"> </span><span class="s">==</span><span class="nv"> </span><span class="s">&#39;critical&#39;&quot;</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Critical</span><span class="nv"> </span><span class="s">severity</span><span class="nv"> </span><span class="s">only&quot;</span>
+</code></pre></div>
+
+<hr />
+<h2 id="actions">Actions</h2>
+<table>
+<thead>
+<tr>
+<th>action_type</th>
+<th>target_id</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>launch_job_template</code></td>
+<td>JobTemplate ID</td>
+<td>Launch with event payload as extra_vars</td>
+</tr>
+<tr>
+<td><code>launch_workflow</code></td>
+<td>WorkflowJobTemplate ID</td>
+<td>Launch workflow</td>
+</tr>
+<tr>
+<td><code>send_notification</code></td>
+<td>NotificationTemplate ID</td>
+<td>Send notification with event summary</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Injected extra variables</strong> (available in playbooks):</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>forge_eda_event_type</code></td>
+<td>Event type (e.g. <code>push</code>)</td>
+</tr>
+<tr>
+<td><code>forge_eda_event_guid</code></td>
+<td>Unique event ID</td>
+</tr>
+<tr>
+<td><code>forge_eda_rule_name</code></td>
+<td>Rule name that fired</td>
+</tr>
+<tr>
+<td><code>forge_eda_payload</code></td>
+<td>Full webhook payload</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="signature-verification">Signature Verification</h2>
+<table>
+<thead>
+<tr>
+<th>Source Type</th>
+<th>Method</th>
+<th>Header</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>webhook_github</code></td>
+<td>HMAC-SHA256 or HMAC-SHA1</td>
+<td><code>X-Hub-Signature-256</code> or <code>X-Hub-Signature</code></td>
+</tr>
+<tr>
+<td><code>webhook_gitlab</code></td>
+<td>Token comparison</td>
+<td><code>X-Gitlab-Token</code></td>
+</tr>
+<tr>
+<td><code>webhook_generic</code></td>
+<td>HMAC-SHA256</td>
+<td><code>X-Forge-Signature</code></td>
+</tr>
+<tr>
+<td><code>alertmanager</code></td>
+<td>HMAC-SHA256</td>
+<td><code>X-Forge-Signature</code></td>
+</tr>
+<tr>
+<td>Others</td>
+<td>HMAC-SHA256</td>
+<td><code>X-Forge-Signature</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>X-Forge-Signature format:</strong> <code>sha256=&lt;hex_digest&gt;</code></p>
+<p>To sign a payload with the webhook key:</p>
+<div class="codehilite"><pre><span></span><code><span class="nb">echo</span><span class="w"> </span>-n<span class="w"> </span><span class="s1">&#39;{&quot;event&quot;:&quot;test&quot;}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>openssl<span class="w"> </span>dgst<span class="w"> </span>-sha256<span class="w"> </span>-hmac<span class="w"> </span><span class="s1">&#39;YOUR_WEBHOOK_KEY&#39;</span>
+</code></pre></div>
+
+<hr />
+<h2 id="security">Security</h2>
+<ul>
+<li><strong>HMAC verification</strong> on all incoming webhooks</li>
+<li><strong>Jinja2 sandboxing</strong> via <code>ImmutableSandboxedEnvironment</code> (no file access, no dangerous calls)</li>
+<li><strong>Rate limiting</strong> via <code>throttle_seconds</code> per rule</li>
+<li><strong>Payload size limit</strong>: 1MB max</li>
+<li><strong>Deduplication</strong>: Duplicate <code>event_guid</code> values are rejected</li>
+<li><strong>RBAC</strong>: Rules scoped to organizations, org admins manage rules</li>
+<li><strong>Audit trail</strong>: Every rule firing creates an AuditEvent</li>
+</ul>
+<hr />
+<h2 id="quick-start">Quick Start</h2>
+<h3 id="1-create-an-event-rule">1. Create an Event Rule</h3>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>https://forge.example.com/api/v2/event_rules/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<span class="s1">    &quot;name&quot;: &quot;Deploy on GitHub push to main&quot;,</span>
+<span class="s1">    &quot;organization&quot;: 1,</span>
+<span class="s1">    &quot;source_type&quot;: &quot;webhook_github&quot;,</span>
+<span class="s1">    &quot;webhook_path&quot;: &quot;github-deploy&quot;,</span>
+<span class="s1">    &quot;conditions&quot;: [</span>
+<span class="s1">      {&quot;jinja2_expression&quot;: &quot;event.ref == \&quot;refs/heads/main\&quot;&quot;, &quot;description&quot;: &quot;Push to main&quot;}</span>
+<span class="s1">    ],</span>
+<span class="s1">    &quot;actions&quot;: [</span>
+<span class="s1">      {&quot;action_type&quot;: &quot;launch_job_template&quot;, &quot;target_id&quot;: 5, &quot;description&quot;: &quot;Run deploy playbook&quot;}</span>
+<span class="s1">    ]</span>
+<span class="s1">  }&#39;</span>
+</code></pre></div>
+
+<h3 id="2-copy-the-webhook-url-and-key">2. Copy the webhook URL and key</h3>
+<p>From the response, note the <code>webhook_url</code> and retrieve the key:</p>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>https://forge.example.com/api/v2/event_rules/1/webhook_key/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span>
+</code></pre></div>
+
+<h3 id="3-configure-github-webhook">3. Configure GitHub webhook</h3>
+<p>In your GitHub repository Settings &gt; Webhooks:
+- <strong>Payload URL</strong>: <code>https://forge.example.com/api/v2/eda_webhooks/github-deploy/</code>
+- <strong>Content type</strong>: <code>application/json</code>
+- <strong>Secret</strong>: The webhook key from step 2
+- <strong>Events</strong>: Push events</p>
+<h3 id="4-test-with-dry-run">4. Test with dry-run</h3>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>https://forge.example.com/api/v2/event_rules/1/test/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<span class="s1">    &quot;payload&quot;: {&quot;ref&quot;: &quot;refs/heads/main&quot;, &quot;action&quot;: &quot;push&quot;},</span>
+<span class="s1">    &quot;headers&quot;: {}</span>
+<span class="s1">  }&#39;</span>
+</code></pre></div>
+
+<hr />
+<h2 id="frontend">Frontend</h2>
+<p>The EDA UI is available in the <strong>Automation</strong> sidebar section:</p>
+<ul>
+<li><strong>Event Rules</strong> (<code>/event_rules</code>) — Create, edit, enable/disable rules</li>
+<li><strong>Event Logs</strong> (<code>/event_logs</code>) — View incoming webhooks and evaluation results</li>
+<li><strong>Outbound Webhooks</strong> (<code>/outbound_webhooks</code>) — Configure job status push notifications</li>
+</ul>
+<p>Each Event Rule detail page shows:
+- Webhook URL (copy-to-clipboard)
+- Webhook key (show/rotate)
+- Condition and action configuration
+- Recent event logs with status badges
+- Dry-run test capability</p>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

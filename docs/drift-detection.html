@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drift Detection — Forge Platform Docs</title>
+  <meta name="description" content="Drift Detection documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/drift-detection.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="16-drift-detection">16 — Drift Detection</h1>
+<p>Automatic configuration change tracking between Ansible runs. Captures host
+fact snapshots, compares them to detect drift, and alerts when thresholds
+are exceeded.</p>
+<hr />
+<h2 id="architecture">Architecture</h2>
+<div class="codehilite"><pre><span></span><code><span class="nx">Job</span><span class="w"> </span><span class="nx">completes</span><span class="w"> </span><span class="p">(</span><span class="nx">fact</span><span class="w"> </span><span class="nx">cache</span><span class="w"> </span><span class="nx">enabled</span><span class="p">)</span>
+<span class="w">         </span><span class="err">│</span>
+<span class="w">         </span><span class="err">▼</span>
+<span class="w">  </span><span class="nx">finish_fact_cache</span><span class="p">()</span><span class="w">          </span><span class="err">──</span><span class="w"> </span><span class="nx">updates</span><span class="w"> </span><span class="nx">host</span><span class="p">.</span><span class="nx">ansible_facts</span>
+<span class="w">         </span><span class="err">│</span>
+<span class="w">         </span><span class="err">▼</span>
+<span class="w">  </span><span class="nx">capture_fact_snapshot</span><span class="w">        </span><span class="err">──</span><span class="w"> </span><span class="nx">Celery</span><span class="w"> </span><span class="nx">task</span><span class="w"> </span><span class="p">(</span><span class="nx">async</span><span class="p">)</span>
+<span class="w">         </span><span class="err">│</span><span class="w">                        </span><span class="nx">computes</span><span class="w"> </span><span class="nx">SHA</span><span class="o">-</span><span class="mi">256</span><span class="w"> </span><span class="nx">hash</span><span class="w"> </span><span class="nx">of</span><span class="w"> </span><span class="nx">facts</span>
+<span class="w">         </span><span class="err">│</span><span class="w">                        </span><span class="nx">skips</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">hash</span><span class="w"> </span><span class="nx">matches</span><span class="w"> </span><span class="nx">previous</span><span class="w"> </span><span class="nx">snapshot</span>
+<span class="w">         </span><span class="err">▼</span>
+<span class="w">  </span><span class="nx">HostFactSnapshot</span><span class="w"> </span><span class="nx">created</span><span class="w">     </span><span class="err">──</span><span class="w"> </span><span class="nx">full</span><span class="w"> </span><span class="nx">ansible_facts</span><span class="w"> </span><span class="nx">stored</span>
+<span class="w">         </span><span class="err">│</span>
+<span class="w">         </span><span class="err">▼</span>
+<span class="w">  </span><span class="nx">detect_drift</span><span class="w">                 </span><span class="err">──</span><span class="w"> </span><span class="nx">Celery</span><span class="w"> </span><span class="nx">task</span><span class="w"> </span><span class="p">(</span><span class="nx">async</span><span class="p">)</span>
+<span class="w">         </span><span class="err">│</span><span class="w">                        </span><span class="nx">compares</span><span class="w"> </span><span class="nx">with</span><span class="w"> </span><span class="nx">previous</span><span class="w"> </span><span class="nx">snapshot</span>
+<span class="w">         </span><span class="err">│</span><span class="w">                        </span><span class="nx">categorizes</span><span class="w"> </span><span class="nx">changes</span><span class="w"> </span><span class="p">(</span><span class="nx">packages</span><span class="p">,</span><span class="w"> </span><span class="nx">kernel</span><span class="p">,</span><span class="w"> </span><span class="o">...</span><span class="p">)</span>
+<span class="w">         </span><span class="err">│</span><span class="w">                        </span><span class="nx">assigns</span><span class="w"> </span><span class="nx">severity</span><span class="w"> </span><span class="p">(</span><span class="nx">low</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="nx">critical</span><span class="p">)</span>
+<span class="w">         </span><span class="err">▼</span>
+<span class="w">  </span><span class="nx">DriftDetection</span><span class="w"> </span><span class="nx">records</span><span class="w">       </span><span class="err">──</span><span class="w"> </span><span class="nx">one</span><span class="w"> </span><span class="nx">per</span><span class="w"> </span><span class="nx">changed</span><span class="w"> </span><span class="nx">fact</span><span class="w"> </span><span class="nx">key</span>
+<span class="w">         </span><span class="err">│</span>
+<span class="w">         </span><span class="err">▼</span>
+<span class="w">  </span><span class="nx">evaluate_drift_alerts</span><span class="w">        </span><span class="err">──</span><span class="w"> </span><span class="nx">Celery</span><span class="w"> </span><span class="nx">task</span><span class="w"> </span><span class="p">(</span><span class="nx">async</span><span class="p">)</span>
+<span class="w">         </span><span class="err">│</span><span class="w">                        </span><span class="nx">checks</span><span class="w"> </span><span class="nx">all</span><span class="w"> </span><span class="nx">enabled</span><span class="w"> </span><span class="nx">DriftAlertRules</span>
+<span class="w">         </span><span class="err">│</span><span class="w">                        </span><span class="nx">threshold</span><span class="p">,</span><span class="w"> </span><span class="nx">window</span><span class="p">,</span><span class="w"> </span><span class="nx">cooldown</span>
+<span class="w">         </span><span class="err">▼</span>
+<span class="w">  </span><span class="nx">DriftAlert</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="nx">notification</span><span class="w">    </span><span class="err">──</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nx">threshold</span><span class="w"> </span><span class="nx">exceeded</span>
+</code></pre></div>
+
+<p>The entire pipeline is asynchronous — <code>capture_fact_snapshot.delay(job.id)</code>
+is called from <code>RunJob.post_run_hook()</code> after <code>finish_fact_cache()</code> completes,
+so it does not slow down job completion.</p>
+<hr />
+<h2 id="models">Models</h2>
+<h3 id="hostfactsnapshot">HostFactSnapshot</h3>
+<p>Point-in-time capture of <code>ansible_facts</code> for a single host.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>host</code></td>
+<td>FK → Host</td>
+<td>The host whose facts were captured</td>
+</tr>
+<tr>
+<td><code>job</code></td>
+<td>FK → Job (nullable)</td>
+<td>The job that triggered the capture</td>
+</tr>
+<tr>
+<td><code>inventory</code></td>
+<td>FK → Inventory</td>
+<td>Inherited from host</td>
+</tr>
+<tr>
+<td><code>organization</code></td>
+<td>FK → Organization</td>
+<td>Inherited from inventory</td>
+</tr>
+<tr>
+<td><code>captured_at</code></td>
+<td>DateTime</td>
+<td>When the snapshot was taken</td>
+</tr>
+<tr>
+<td><code>facts</code></td>
+<td>JSON</td>
+<td>Full <code>ansible_facts</code> dictionary</td>
+</tr>
+<tr>
+<td><code>facts_hash</code></td>
+<td>CharField(64)</td>
+<td>SHA-256 of sorted JSON — for quick equality check</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Key behavior:</strong> A snapshot is only created when <code>facts_hash</code> differs from
+the most recent snapshot for the same host. This prevents storing duplicate
+snapshots when facts haven't changed.</p>
+<h3 id="driftdetection">DriftDetection</h3>
+<p>A single detected configuration change between two consecutive snapshots.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>host</code></td>
+<td>FK → Host</td>
+<td>Which host changed</td>
+</tr>
+<tr>
+<td><code>snapshot_before</code></td>
+<td>FK → HostFactSnapshot</td>
+<td>Previous state</td>
+</tr>
+<tr>
+<td><code>snapshot_after</code></td>
+<td>FK → HostFactSnapshot</td>
+<td>New state</td>
+</tr>
+<tr>
+<td><code>job</code></td>
+<td>FK → Job</td>
+<td>Which job caused the change</td>
+</tr>
+<tr>
+<td><code>category</code></td>
+<td>CharField</td>
+<td>packages, services, users_groups, network, mounts, kernel, other</td>
+</tr>
+<tr>
+<td><code>severity</code></td>
+<td>CharField</td>
+<td>low, medium, high, critical</td>
+</tr>
+<tr>
+<td><code>fact_path</code></td>
+<td>CharField</td>
+<td>Top-level fact key (e.g. <code>ansible_packages</code>)</td>
+</tr>
+<tr>
+<td><code>summary</code></td>
+<td>CharField</td>
+<td>Human-readable change description</td>
+</tr>
+<tr>
+<td><code>detail</code></td>
+<td>JSON</td>
+<td><code>{before, after, diff_type}</code></td>
+</tr>
+<tr>
+<td><code>acknowledged</code></td>
+<td>Boolean</td>
+<td>Whether an admin has reviewed this change</td>
+</tr>
+<tr>
+<td><code>acknowledged_by</code></td>
+<td>FK → User</td>
+<td>Who acknowledged</td>
+</tr>
+<tr>
+<td><code>acknowledged_at</code></td>
+<td>DateTime</td>
+<td>When acknowledged</td>
+</tr>
+</tbody>
+</table>
+<h3 id="category-classification">Category Classification</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Matched facts</th>
+<th>Default severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>packages</code></td>
+<td>ansible_packages, ansible_pkg_mgr, <em>package</em>, <em>pip</em></td>
+<td>medium</td>
+</tr>
+<tr>
+<td><code>services</code></td>
+<td>ansible_services, ansible_service_mgr, <em>systemd</em></td>
+<td>medium</td>
+</tr>
+<tr>
+<td><code>users_groups</code></td>
+<td>ansible_user_<em>, </em>user<em>, </em>group<em>, </em>passwd*</td>
+<td>high</td>
+</tr>
+<tr>
+<td><code>network</code></td>
+<td>ansible_all_ipv4/6_addresses, ansible_interfaces, <em>tcp</em>, <em>port</em></td>
+<td>high</td>
+</tr>
+<tr>
+<td><code>mounts</code></td>
+<td>ansible_mounts, ansible_devices, <em>disk</em>, <em>lvm</em></td>
+<td>medium</td>
+</tr>
+<tr>
+<td><code>kernel</code></td>
+<td>ansible_kernel*, ansible_sysctl, ansible_selinux</td>
+<td>critical</td>
+</tr>
+<tr>
+<td><code>other</code></td>
+<td>Everything else</td>
+<td>low</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Volatile keys skipped:</strong> <code>ansible_date_time</code>, <code>ansible_uptime_seconds</code>,
+<code>ansible_local</code>, <code>module_setup</code>, <code>gather_subset</code>.</p>
+<h3 id="driftalertrule">DriftAlertRule</h3>
+<p>User-defined rule for alerting when drift exceeds a threshold.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>CharField</td>
+<td>Rule name (unique per org)</td>
+</tr>
+<tr>
+<td><code>organization</code></td>
+<td>FK → Organization</td>
+<td>Scope</td>
+</tr>
+<tr>
+<td><code>enabled</code></td>
+<td>Boolean</td>
+<td>Active or paused</td>
+</tr>
+<tr>
+<td><code>inventory</code></td>
+<td>FK → Inventory (optional)</td>
+<td>Filter by inventory</td>
+</tr>
+<tr>
+<td><code>host_filter</code></td>
+<td>CharField</td>
+<td>fnmatch pattern (e.g. <code>web-*</code>)</td>
+</tr>
+<tr>
+<td><code>categories</code></td>
+<td>JSON list</td>
+<td>Which drift categories to match (empty = all)</td>
+</tr>
+<tr>
+<td><code>severity_min</code></td>
+<td>CharField</td>
+<td>Minimum severity to count (low/medium/high/critical)</td>
+</tr>
+<tr>
+<td><code>threshold_count</code></td>
+<td>Integer</td>
+<td>How many drift items trigger the alert</td>
+</tr>
+<tr>
+<td><code>threshold_window_minutes</code></td>
+<td>Integer</td>
+<td>Time window for counting</td>
+</tr>
+<tr>
+<td><code>cooldown_minutes</code></td>
+<td>Integer</td>
+<td>Minimum time between alert firings</td>
+</tr>
+<tr>
+<td><code>notification_template</code></td>
+<td>FK → NotificationTemplate</td>
+<td>Where to send alert</td>
+</tr>
+</tbody>
+</table>
+<h3 id="driftalert">DriftAlert</h3>
+<p>Immutable record of a triggered alert.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>alert_rule</code></td>
+<td>FK → DriftAlertRule</td>
+<td>Which rule triggered</td>
+</tr>
+<tr>
+<td><code>host</code></td>
+<td>FK → Host</td>
+<td>Which host caused it</td>
+</tr>
+<tr>
+<td><code>drift_count</code></td>
+<td>Integer</td>
+<td>How many drift items were counted</td>
+</tr>
+<tr>
+<td><code>summary</code></td>
+<td>Text</td>
+<td>Human-readable description</td>
+</tr>
+<tr>
+<td><code>notification_status</code></td>
+<td>CharField</td>
+<td>pending, sent, failed</td>
+</tr>
+<tr>
+<td><code>notification_error</code></td>
+<td>Text</td>
+<td>Error message if send failed</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="api-endpoints">API Endpoints</h2>
+<h3 id="fact-snapshots-read-only">Fact Snapshots (read-only)</h3>
+<div class="codehilite"><pre><span></span><code>GET<span class="w">    </span>/api/v2/fact_snapshots/<span class="w">                          </span><span class="c1"># List (filterable by host, inventory, job)</span>
+GET<span class="w">    </span>/api/v2/fact_snapshots/<span class="o">{</span>id<span class="o">}</span>/<span class="w">                     </span><span class="c1"># Detail (includes full facts)</span>
+</code></pre></div>
+
+<h3 id="drift-detections-read-only-acknowledge">Drift Detections (read-only + acknowledge)</h3>
+<div class="codehilite"><pre><span></span><code>GET<span class="w">    </span>/api/v2/drift_detections/<span class="w">                        </span><span class="c1"># List (filter: host, inventory, category, severity, acknowledged)</span>
+GET<span class="w">    </span>/api/v2/drift_detections/<span class="o">{</span>id<span class="o">}</span>/<span class="w">                   </span><span class="c1"># Detail (includes before/after diff)</span>
+POST<span class="w">   </span>/api/v2/drift_detections/<span class="o">{</span>id<span class="o">}</span>/acknowledge/<span class="w">       </span><span class="c1"># Mark as acknowledged</span>
+POST<span class="w">   </span>/api/v2/drift_detections/compare/<span class="w">                </span><span class="c1"># Compare two snapshots: {snapshot_a, snapshot_b}</span>
+GET<span class="w">    </span>/api/v2/drift_detections/export/<span class="w">                 </span><span class="c1"># CSV compliance report (filter: host, inventory, date range)</span>
+GET<span class="w">    </span>/api/v2/drift_detections/summary/<span class="w">                </span><span class="c1"># Dashboard stats: {total, unacknowledged, by_category, by_severity}</span>
+</code></pre></div>
+
+<h3 id="drift-alert-rules-crud">Drift Alert Rules (CRUD)</h3>
+<div class="codehilite"><pre><span></span><code>GET<span class="w">    </span>/api/v2/drift_alert_rules/<span class="w">                       </span><span class="c1"># List</span>
+POST<span class="w">   </span>/api/v2/drift_alert_rules/<span class="w">                       </span><span class="c1"># Create</span>
+GET<span class="w">    </span>/api/v2/drift_alert_rules/<span class="o">{</span>id<span class="o">}</span>/<span class="w">                  </span><span class="c1"># Detail</span>
+PATCH<span class="w">  </span>/api/v2/drift_alert_rules/<span class="o">{</span>id<span class="o">}</span>/<span class="w">                  </span><span class="c1"># Update</span>
+DELETE<span class="w"> </span>/api/v2/drift_alert_rules/<span class="o">{</span>id<span class="o">}</span>/<span class="w">                  </span><span class="c1"># Delete</span>
+POST<span class="w">   </span>/api/v2/drift_alert_rules/<span class="o">{</span>id<span class="o">}</span>/enable/<span class="w">           </span><span class="c1"># Enable</span>
+POST<span class="w">   </span>/api/v2/drift_alert_rules/<span class="o">{</span>id<span class="o">}</span>/disable/<span class="w">          </span><span class="c1"># Disable</span>
+</code></pre></div>
+
+<h3 id="drift-alerts-read-only">Drift Alerts (read-only)</h3>
+<div class="codehilite"><pre><span></span><code>GET<span class="w">    </span>/api/v2/drift_alerts/<span class="w">                            </span><span class="c1"># List (filter: alert_rule, host, notification_status)</span>
+GET<span class="w">    </span>/api/v2/drift_alerts/<span class="o">{</span>id<span class="o">}</span>/<span class="w">                       </span><span class="c1"># Detail</span>
+</code></pre></div>
+
+<h3 id="host-drift-history-nested">Host Drift History (nested)</h3>
+<div class="codehilite"><pre><span></span><code>GET<span class="w">    </span>/api/v2/hosts/<span class="o">{</span>id<span class="o">}</span>/drift/<span class="w">                        </span><span class="c1"># All drift for a specific host</span>
+</code></pre></div>
+
+<hr />
+<h2 id="alert-rule-create-example">Alert Rule — Create Example</h2>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>https://forge.example.com/api/v2/drift_alert_rules/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<span class="s1">    &quot;name&quot;: &quot;Critical kernel changes&quot;,</span>
+<span class="s1">    &quot;organization&quot;: 1,</span>
+<span class="s1">    &quot;categories&quot;: [&quot;kernel&quot;, &quot;users_groups&quot;],</span>
+<span class="s1">    &quot;severity_min&quot;: &quot;high&quot;,</span>
+<span class="s1">    &quot;threshold_count&quot;: 1,</span>
+<span class="s1">    &quot;threshold_window_minutes&quot;: 60,</span>
+<span class="s1">    &quot;cooldown_minutes&quot;: 30,</span>
+<span class="s1">    &quot;notification_template&quot;: 5</span>
+<span class="s1">  }&#39;</span>
+</code></pre></div>
+
+<hr />
+<h2 id="csv-compliance-export">CSV Compliance Export</h2>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Export all drift for an inventory in the last 30 days</span>
+curl<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Authorization: Bearer &lt;token&gt;&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span><span class="s2">&quot;https://forge.example.com/api/v2/drift_detections/export/?inventory=3&amp;date_from=2026-03-01&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-o<span class="w"> </span>drift_report.csv
+</code></pre></div>
+
+<p>Output columns: ID, Host, Detected At, Category, Severity, Fact Path,
+Summary, Diff Type, Acknowledged.</p>
+<hr />
+<h2 id="snapshot-cleanup">Snapshot Cleanup</h2>
+<p>Periodic task <code>cleanup_old_snapshots</code> runs as a Celery beat task:</p>
+<ul>
+<li>Default retention: 90 days</li>
+<li>Always keeps at least 2 snapshots per host</li>
+<li>Run manually: <code>forge-manage shell -c "from forge.main.tasks.drift import cleanup_old_snapshots; cleanup_old_snapshots()"</code></li>
+</ul>
+<hr />
+<h2 id="frontend">Frontend</h2>
+<p>Four pages under the <strong>Compliance</strong> sidebar section:</p>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Route</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Drift Detections</td>
+<td><code>/drift_detections</code></td>
+<td>Filterable list with category/severity badges, CSV export</td>
+</tr>
+<tr>
+<td>Drift Detection Detail</td>
+<td><code>/drift_detections/:id</code></td>
+<td>Before/after JSON diff, acknowledge button</td>
+</tr>
+<tr>
+<td>Drift Alert Rules</td>
+<td><code>/drift_alert_rules</code></td>
+<td>CRUD list with create/edit/enable/disable</td>
+</tr>
+<tr>
+<td>Drift Alert Rule Detail</td>
+<td><code>/drift_alert_rules/:id</code></td>
+<td>Config summary, recent triggered alerts</td>
+</tr>
+<tr>
+<td>Drift Alerts</td>
+<td><code>/drift_alerts</code></td>
+<td>Read-only list of triggered alerts</td>
+</tr>
+<tr>
+<td>Drift Alert Detail</td>
+<td><code>/drift_alerts/:id</code></td>
+<td>Alert summary, notification status/error</td>
+</tr>
+<tr>
+<td>Fact Snapshots</td>
+<td><code>/fact_snapshots</code></td>
+<td>Browse captured snapshots by host/job</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="security">Security</h2>
+<ul>
+<li><strong>RBAC:</strong> All endpoints require authentication. Non-admin users only see
+  drift for hosts in their organization.</li>
+<li><strong>No write access to drift data:</strong> DriftDetection records are created
+  automatically by the system — users can only acknowledge, not modify.</li>
+<li><strong>Immutable snapshots:</strong> HostFactSnapshot records cannot be updated or
+  deleted through the API.</li>
+</ul>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

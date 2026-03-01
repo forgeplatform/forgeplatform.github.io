@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Observability — Forge Platform Docs</title>
+  <meta name="description" content="Observability documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/observability.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="21-observability-opentelemetry">21 — Observability (OpenTelemetry)</h1>
+<p><strong>Tier 3.6 — DONE</strong></p>
+<p>Forge emits <strong>traces</strong> and <strong>metrics</strong> via the OpenTelemetry SDK so operators
+can plug it into any OTLP-compatible backend (Grafana Tempo + Prometheus,
+Jaeger, Datadog, Honeycomb, New Relic, ...). There is <strong>zero vendor coupling</strong>:
+the platform talks only to an OTel Collector, and the Collector fans out.</p>
+<p>This feature is additive and fully gated by <code>OTEL_ENABLED</code>. When disabled, the
+SDK is not even imported, so the overhead is zero.</p>
+<hr />
+<h2 id="architecture">Architecture</h2>
+<div class="codehilite"><pre><span></span><code>              forge-web (Django)            forge-task (Celery)
+                   │                               │
+                   └──────── OTLP gRPC ────────────┘
+                              (4317)
+                                │
+                                ▼
+                      forge-otel-collector
+                  (otel/opentelemetry-collector-contrib)
+                                │
+                   ┌────────────┼────────────┐
+                   ▼            ▼            ▼
+               Grafana       Jaeger       Datadog  ...
+               Tempo /       (traces)     (OTLP)
+               Prometheus
+</code></pre></div>
+
+<ul>
+<li>Collector config: <code>forge-deploy/otel/config.yaml</code></li>
+<li>Docker Compose service: <code>forge-otel-collector</code> in
+  <code>forge-deploy/docker-compose.yml</code></li>
+<li>Kubernetes stubs: <code>forge-deploy/k8s/otel-collector.yaml</code>,
+  <code>forge-deploy/k8s/grafana-dashboards-cm.yaml</code> (not yet tested)</li>
+<li>Grafana dashboard: <code>forge-deploy/grafana/dashboards/forge-overview.json</code></li>
+</ul>
+<h2 id="bootstrap-flow">Bootstrap flow</h2>
+<p>Entry point: <code>forge.main.observability.init_observability()</code>.</p>
+<ol>
+<li>Short-circuits immediately if <code>OTEL_ENABLED</code> is false (no SDK import).</li>
+<li>Lazily imports the OTel SDK + exporter + instrumentation packages.</li>
+<li>Builds a <code>Resource</code> from <code>OTEL_RESOURCE_ATTRIBUTES</code> (plus <code>service.name</code>).</li>
+<li>Picks a sampler from <code>OTEL_TRACES_SAMPLER</code>
+   (<code>always_on</code> | <code>always_off</code> | <code>traceidratio</code> | <code>parentbased_traceidratio</code>,
+   default <code>parentbased_traceidratio</code> with ratio <code>OTEL_TRACES_SAMPLER_ARG</code>).</li>
+<li>Installs a <code>TracerProvider</code> with a <code>BatchSpanProcessor</code> + OTLP gRPC
+   exporter pointed at <code>OTEL_EXPORTER_ENDPOINT</code>.</li>
+<li>Installs a <code>MeterProvider</code> with a <code>PeriodicExportingMetricReader</code> + OTLP
+   metric exporter.</li>
+<li>Registers auto-instrumentations for Django, Celery, Requests, Psycopg2.</li>
+<li>All failures are caught and logged — a misconfigured Collector must not
+   prevent Django from booting.</li>
+</ol>
+<p>Called from <code>forge/asgi.py</code>, <code>forge/wsgi.py</code>, and the Celery worker boot hook
+(<code>forge/settings/defaults/celery_conf.py</code>).</p>
+<h2 id="environment-variables-settings-registry">Environment variables / settings registry</h2>
+<p>All registered in <code>forge/main/conf.py</code> under category <code>System</code>. Env wins on
+first boot; subsequent changes can be made in <strong>Settings → System</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>OTEL_ENABLED</code></td>
+<td><code>false</code></td>
+<td>Master switch</td>
+</tr>
+<tr>
+<td><code>OTEL_EXPORTER_ENDPOINT</code></td>
+<td><code>http://forge-otel-collector:4317</code></td>
+<td>OTLP gRPC endpoint</td>
+</tr>
+<tr>
+<td><code>OTEL_SERVICE_NAME</code></td>
+<td><code>forge</code></td>
+<td><code>service.name</code> resource attribute</td>
+</tr>
+<tr>
+<td><code>OTEL_RESOURCE_ATTRIBUTES</code></td>
+<td><code>""</code></td>
+<td>Comma-separated <code>k=v</code> pairs</td>
+</tr>
+<tr>
+<td><code>OTEL_TRACES_SAMPLER</code></td>
+<td><code>parentbased_traceidratio</code></td>
+<td>Standard OTel sampler names</td>
+</tr>
+<tr>
+<td><code>OTEL_TRACES_SAMPLER_ARG</code></td>
+<td><code>0.1</code></td>
+<td>Ratio in [0,1] (validated)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="span-instrumentation-seams">Span instrumentation seams</h2>
+<p>Manual root/child spans wrap high-value code paths (see
+<code>forge/main/observability/tracing.py</code>):</p>
+<ul>
+<li>Launch path in <code>forge/api/views/job_templates.py</code>,
+  <code>forge/api/views/workflows.py</code>, <code>forge/api/views/ad_hoc_commands.py</code>:
+  root span <code>forge.launch</code> with attributes <code>template_id</code>, <code>template_type</code>,
+  <code>user_id</code>, <code>organization_id</code>, <code>result</code>, <code>gate_blocked</code>.</li>
+<li>Child span <code>forge.policy.evaluate</code> in <code>forge/main/policy/evaluator.py</code>.</li>
+<li>Child span <code>forge.scanner.run</code> in <code>forge/main/scanning/runner.py</code>.</li>
+</ul>
+<p>Everything else (HTTP views, DB queries, outgoing requests, Celery tasks)
+is covered by the auto-instrumentations.</p>
+<h2 id="metric-handles">Metric handles</h2>
+<p>Exposed by <code>forge/main/observability/metrics.py</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Type</th>
+<th>Labels</th>
+<th>Emitted from</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>forge_jobs_launched_total</code></td>
+<td>counter</td>
+<td><code>status, template_type</code></td>
+<td>launch hook</td>
+</tr>
+<tr>
+<td><code>forge_jobs_blocked_total</code></td>
+<td>counter</td>
+<td><code>gate</code> (policy|scanner)</td>
+<td>launch hook</td>
+</tr>
+<tr>
+<td><code>forge_job_duration_seconds</code></td>
+<td>histogram</td>
+<td>—</td>
+<td><code>UnifiedJob</code> finish hook</td>
+</tr>
+<tr>
+<td><code>forge_policy_evaluations_total</code></td>
+<td>counter</td>
+<td><code>decision</code></td>
+<td>policy evaluator</td>
+</tr>
+<tr>
+<td><code>forge_scan_runs_total</code></td>
+<td>counter</td>
+<td><code>status</code></td>
+<td>scanner runner</td>
+</tr>
+<tr>
+<td><code>forge_active_jobs</code></td>
+<td>gauge</td>
+<td>—</td>
+<td>Celery beat every 30 s</td>
+</tr>
+</tbody>
+</table>
+<p>All handles are cheap no-ops when <code>OTEL_ENABLED=false</code>.</p>
+<h2 id="rest-api">REST API</h2>
+<h3 id="get-apiv2observability"><code>GET /api/v2/observability/</code></h3>
+<p>Admin-only. Returns current config plus a best-effort TCP probe against the
+Collector endpoint (500 ms timeout, cached for 30 s).</p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;service_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;forge&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;exporter_endpoint&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://forge-otel-collector:4317&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;sampler&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;parentbased_traceidratio&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;sampler_arg&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.1&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;collector_healthy&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;collector_last_check&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-04-09T15:42:00Z&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h2 id="verification">Verification</h2>
+<ul>
+<li><code>python -m unittest tests_standalone.test_observability -v</code> — pure helper
+  tests (parser / sampler validation / health aggregation).</li>
+<li>E2E smoke via the deployed stack:</li>
+<li><code>docker compose ps</code> — <code>forge-otel-collector</code> is running.</li>
+<li><code>curl -sk -u admin:admin https://localhost/api/v2/observability/</code> —
+     returns <code>enabled: true</code>, <code>collector_healthy: true</code>.</li>
+<li><code>docker compose logs forge-otel-collector --tail 50</code> — debug exporter
+     prints incoming spans after a job launch.</li>
+<li>Settings → System shows the <code>OTEL_*</code> keys.</li>
+<li>Sidebar → <strong>Observability</strong> shows a green Collector badge.</li>
+</ul>
+<h2 id="future-work">Future work</h2>
+<ul>
+<li>Point the Collector at a real backend (Tempo / Prometheus / Loki) instead
+  of the default <code>debug</code> exporter.</li>
+<li>Wire Prometheus alerts back into EDA rules for a closed feedback loop.</li>
+<li>Validate <code>forge-deploy/k8s/</code> manifest stubs against a real cluster (see
+  <code>forge-deploy/docs/future_development_plan.md</code> → <em>Infrastructure &amp; Test
+  Environments</em>).</li>
+</ul>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

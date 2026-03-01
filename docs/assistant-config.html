@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Assistant Configuration — Forge Platform Docs</title>
+  <meta name="description" content="AI Assistant Configuration documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/assistant-config.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="configuration">Configuration</h1>
+<p>All configuration is via environment variables with the <code>FORGE_ASSISTANT_</code> prefix.</p>
+<hr />
+<h2 id="environment-variables">Environment Variables</h2>
+<h3 id="ollama-settings">Ollama Settings</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FORGE_ASSISTANT_OLLAMA_BASE_URL</code></td>
+<td><code>http://localhost:11434</code></td>
+<td>Ollama API base URL (localhost — runs inside the same container)</td>
+</tr>
+<tr>
+<td><code>FORGE_ASSISTANT_OLLAMA_MODEL</code></td>
+<td><code>gemma3:1b</code></td>
+<td>LLM model for chat generation</td>
+</tr>
+<tr>
+<td><code>FORGE_ASSISTANT_OLLAMA_EMBED_MODEL</code></td>
+<td><code>nomic-embed-text</code></td>
+<td>Model for generating embeddings</td>
+</tr>
+<tr>
+<td><code>FORGE_ASSISTANT_OLLAMA_TIMEOUT</code></td>
+<td><code>120</code></td>
+<td>Timeout in seconds for Ollama requests</td>
+</tr>
+</tbody>
+</table>
+<h3 id="chromadb-settings">ChromaDB Settings</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FORGE_ASSISTANT_CHROMA_HOST</code></td>
+<td><code>localhost</code></td>
+<td>ChromaDB hostname (localhost — embedded in the same container)</td>
+</tr>
+<tr>
+<td><code>FORGE_ASSISTANT_CHROMA_PORT</code></td>
+<td><code>8000</code></td>
+<td>ChromaDB port</td>
+</tr>
+<tr>
+<td><code>FORGE_ASSISTANT_CHROMA_COLLECTION</code></td>
+<td><code>forge_docs</code></td>
+<td>Collection name for indexed documents</td>
+</tr>
+</tbody>
+</table>
+<h3 id="rag-settings">RAG Settings</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FORGE_ASSISTANT_RAG_TOP_K</code></td>
+<td><code>5</code></td>
+<td>Number of document chunks to retrieve per query</td>
+</tr>
+<tr>
+<td><code>FORGE_ASSISTANT_RAG_CHUNK_SIZE</code></td>
+<td><code>500</code></td>
+<td>Character count per document chunk</td>
+</tr>
+<tr>
+<td><code>FORGE_ASSISTANT_RAG_CHUNK_OVERLAP</code></td>
+<td><code>50</code></td>
+<td>Overlap between adjacent chunks</td>
+</tr>
+</tbody>
+</table>
+<h3 id="application-settings">Application Settings</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>FORGE_ASSISTANT_APP_NAME</code></td>
+<td><code>Forge Assistant</code></td>
+<td>Application display name</td>
+</tr>
+<tr>
+<td><code>FORGE_ASSISTANT_APP_VERSION</code></td>
+<td><code>2026.04.0</code></td>
+<td>Version string</td>
+</tr>
+<tr>
+<td><code>FORGE_ASSISTANT_LOG_LEVEL</code></td>
+<td><code>INFO</code></td>
+<td>Logging level (DEBUG, INFO, WARNING, ERROR)</td>
+</tr>
+<tr>
+<td><code>FORGE_ASSISTANT_CORS_ORIGINS</code></td>
+<td><code>*</code></td>
+<td>Comma-separated list of allowed CORS origins</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="model-selection">Model Selection</h2>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>VRAM</th>
+<th>Speed</th>
+<th>Quality</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tinyllama:1.1b</code></td>
+<td>2 GB</td>
+<td>Fastest</td>
+<td>Basic</td>
+<td>CPU-only, testing</td>
+</tr>
+<tr>
+<td><code>phi3:mini</code></td>
+<td>4 GB</td>
+<td>Fast</td>
+<td>Good</td>
+<td>CPU with 8+ GB RAM</td>
+</tr>
+<tr>
+<td><code>gemma3:1b</code></td>
+<td>2 GB</td>
+<td>Fast</td>
+<td>Good</td>
+<td><strong>Default</strong> — works on CPU, good balance</td>
+</tr>
+<tr>
+<td><code>mistral:7b</code></td>
+<td>6 GB</td>
+<td>Medium</td>
+<td>Excellent</td>
+<td>GPU with 8+ GB VRAM</td>
+</tr>
+<tr>
+<td><code>llama3.1:8b</code></td>
+<td>8 GB</td>
+<td>Medium</td>
+<td>Best</td>
+<td>GPU with 10+ GB VRAM</td>
+</tr>
+</tbody>
+</table>
+<p>To change the model:</p>
+<div class="codehilite"><pre><span></span><code><span class="c1"># Pull new model (exec into the all-in-one container)</span>
+docker<span class="w"> </span>compose<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>forge-assistant<span class="w"> </span>ollama<span class="w"> </span>pull<span class="w"> </span>llama3.1:8b
+
+<span class="c1"># Restart with new model</span>
+<span class="nv">FORGE_ASSISTANT_OLLAMA_MODEL</span><span class="o">=</span>llama3.1:8b<span class="w"> </span>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+
+<hr />
+<h2 id="document-sources">Document Sources</h2>
+<p>Place markdown files in <code>docs_to_index/</code> to make them searchable:</p>
+<div class="codehilite"><pre><span></span><code>docs_to_index/
+├── api_reference/     # API endpoint documentation
+│   ├── jobs.md
+│   ├── templates.md
+│   └── inventories.md
+├── user_guide/        # User instructions
+│   ├── getting_started.md
+│   ├── schedules.md
+│   └── workflows.md
+└── errors/            # Known errors and solutions
+    └── common_errors.md
+</code></pre></div>
+
+<p>After adding files, trigger re-indexing:</p>
+<div class="codehilite"><pre><span></span><code>curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8100/api/v1/index?rebuild<span class="o">=</span><span class="nb">true</span>
+</code></pre></div>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

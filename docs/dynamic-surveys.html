@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Surveys — Forge Platform Docs</title>
+  <meta name="description" content="Dynamic Surveys documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/dynamic-surveys.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="13-dynamic-surveys">13 — Dynamic Surveys</h1>
+<p>Dynamic surveys extend the standard survey system by allowing choice-based
+questions (multiplechoice and multiselect) to populate their options at launch
+time instead of at template definition time.</p>
+<hr />
+<h2 id="overview">Overview</h2>
+<p>Standard surveys require choices to be hardcoded in the survey spec. Dynamic
+surveys resolve choices from three configurable sources:</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Description</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Database Query</strong></td>
+<td>Query Forge models (hosts, groups, projects, etc.)</td>
+<td>Select a host from inventory</td>
+</tr>
+<tr>
+<td><strong>External API</strong></td>
+<td>Fetch choices from an HTTP endpoint</td>
+<td>Options from CMDB, ServiceNow, etc.</td>
+</tr>
+<tr>
+<td><strong>Jinja2 Template</strong></td>
+<td>Evaluate a Jinja2 expression</td>
+<td>Custom logic using inventory data</td>
+</tr>
+</tbody>
+</table>
+<p>Results are cached with a configurable TTL to avoid slow launches.</p>
+<hr />
+<h2 id="survey-spec-format">Survey Spec Format</h2>
+<p>A survey question with dynamic choices includes a <code>dynamic_choices</code> field:</p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Deploy Survey&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Select deployment target&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;spec&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;variable&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;target_host&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;question_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Select target host&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;question_description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Choose which host to deploy to&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;multiplechoice&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;required&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;default&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;choices&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;min&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;max&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;dynamic_choices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;source_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;db_query&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;hosts&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;field&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;name&quot;</span><span class="p">,</span>
+<span class="w">        </span><span class="nt">&quot;filter&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="nt">&quot;inventory__id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">&quot;cache_ttl&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">120</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="dynamic_choices-configuration">dynamic_choices Configuration</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>enabled</code></td>
+<td>boolean</td>
+<td>Yes</td>
+<td>Enable/disable dynamic choices</td>
+</tr>
+<tr>
+<td><code>source_type</code></td>
+<td>string</td>
+<td>Yes (if enabled)</td>
+<td>One of: <code>db_query</code>, <code>api_endpoint</code>, <code>jinja2</code></td>
+</tr>
+<tr>
+<td><code>cache_ttl</code></td>
+<td>integer</td>
+<td>No (default: 60)</td>
+<td>Cache duration in seconds (0 = no cache)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="source-database-query">Source: Database Query</h2>
+<p>Query Forge database models and return a field value as choices.</p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;source_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;db_query&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;hosts&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;field&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;name&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;filter&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;inventory__id&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;name__startswith&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;web&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;cache_ttl&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="allowed-models">Allowed Models</h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th>Model</th>
+<th>Example Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hosts</code></td>
+<td>Host</td>
+<td>Select target hosts</td>
+</tr>
+<tr>
+<td><code>groups</code></td>
+<td>Group</td>
+<td>Select host groups</td>
+</tr>
+<tr>
+<td><code>projects</code></td>
+<td>Project</td>
+<td>Select project</td>
+</tr>
+<tr>
+<td><code>inventories</code></td>
+<td>Inventory</td>
+<td>Select inventory</td>
+</tr>
+<tr>
+<td><code>credentials</code></td>
+<td>Credential</td>
+<td>Select credential</td>
+</tr>
+<tr>
+<td><code>organizations</code></td>
+<td>Organization</td>
+<td>Select organization</td>
+</tr>
+<tr>
+<td><code>execution_environments</code></td>
+<td>ExecutionEnvironment</td>
+<td>Select EE</td>
+</tr>
+<tr>
+<td><code>templates</code></td>
+<td>JobTemplate</td>
+<td>Select template</td>
+</tr>
+</tbody>
+</table>
+<h3 id="allowed-fields">Allowed Fields</h3>
+<ul>
+<li><code>name</code> — resource name (default)</li>
+<li><code>id</code> — resource ID</li>
+<li><code>description</code> — resource description</li>
+</ul>
+<h3 id="auto-filtering">Auto-filtering</h3>
+<p>If no filter is provided and the question type is <code>hosts</code> or <code>groups</code>,
+the system automatically filters by the job template's inventory.</p>
+<hr />
+<h2 id="source-external-api">Source: External API</h2>
+<p>Fetch choices from an HTTP endpoint. Supports JSON responses.</p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;source_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;api_endpoint&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://cmdb.example.com/api/v1/servers&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;method&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GET&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;headers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;Authorization&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Bearer &lt;token&gt;&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;json_path&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;data.items&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;value_field&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;hostname&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;timeout&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;cache_ttl&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">300</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td>
+<td>string</td>
+<td>—</td>
+<td>HTTP endpoint URL (required)</td>
+</tr>
+<tr>
+<td><code>method</code></td>
+<td>string</td>
+<td><code>GET</code></td>
+<td>HTTP method (<code>GET</code> or <code>POST</code>)</td>
+</tr>
+<tr>
+<td><code>headers</code></td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Custom HTTP headers</td>
+</tr>
+<tr>
+<td><code>json_path</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Dot-notation path to the array in response</td>
+</tr>
+<tr>
+<td><code>value_field</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Field to extract from objects in the array</td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td>integer</td>
+<td><code>10</code></td>
+<td>Request timeout in seconds</td>
+</tr>
+<tr>
+<td><code>body</code></td>
+<td>object</td>
+<td><code>{}</code></td>
+<td>Request body for POST method</td>
+</tr>
+</tbody>
+</table>
+<h3 id="response-formats">Response Formats</h3>
+<p><strong>Simple list:</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="p">[</span><span class="s2">&quot;server1&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;server2&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;server3&quot;</span><span class="p">]</span>
+</code></pre></div>
+
+<p><strong>Nested with json_path and value_field:</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;data&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;items&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span><span class="nt">&quot;hostname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;web-01&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;ip&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;10.0.1.1&quot;</span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span><span class="nt">&quot;hostname&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;web-02&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;ip&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;10.0.1.2&quot;</span><span class="p">}</span>
+<span class="w">    </span><span class="p">]</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<p>With <code>json_path: "data.items"</code> and <code>value_field: "hostname"</code>, this returns
+<code>["web-01", "web-02"]</code>.</p>
+<hr />
+<h2 id="source-jinja2-template">Source: Jinja2 Template</h2>
+<p>Evaluate a Jinja2 expression that outputs a JSON array.</p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;enabled&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;source_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;jinja2&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;template&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{{ groups | tojson }}&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;cache_ttl&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="available-context-variables">Available Context Variables</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hosts</code></td>
+<td>list[str]</td>
+<td>Host names from the template's inventory</td>
+</tr>
+<tr>
+<td><code>groups</code></td>
+<td>list[str]</td>
+<td>Group names from the template's inventory</td>
+</tr>
+</tbody>
+</table>
+<p>The template <strong>must output a valid JSON array</strong>.</p>
+<h3 id="examples">Examples</h3>
+<div class="codehilite"><pre><span></span><code><span class="c">{# List all hosts #}</span>
+<span class="cp">{{</span> <span class="nv">hosts</span> <span class="o">|</span> <span class="nf">tojson</span> <span class="cp">}}</span>
+
+<span class="c">{# Filter hosts by prefix #}</span>
+<span class="cp">{{</span> <span class="nv">hosts</span> <span class="o">|</span> <span class="nf">select</span><span class="o">(</span><span class="s2">&quot;match&quot;</span><span class="o">,</span> <span class="s2">&quot;^web&quot;</span><span class="o">)</span> <span class="o">|</span> <span class="nf">list</span> <span class="o">|</span> <span class="nf">tojson</span> <span class="cp">}}</span>
+
+<span class="c">{# Static list generated from range #}</span>
+<span class="cp">{{</span> <span class="nv">range</span><span class="o">(</span><span class="m">1</span><span class="o">,</span> <span class="m">11</span><span class="o">)</span> <span class="o">|</span> <span class="nf">list</span> <span class="o">|</span> <span class="nf">tojson</span> <span class="cp">}}</span>
+</code></pre></div>
+
+<hr />
+<h2 id="api-resolve-dynamic-choices">API: Resolve Dynamic Choices</h2>
+<h3 id="endpoint">Endpoint</h3>
+<div class="codehilite"><pre><span></span><code><span class="nx">POST</span><span class="w"> </span><span class="o">/</span><span class="kn">api</span><span class="o">/</span><span class="nx">v2</span><span class="o">/</span><span class="nx">job_templates</span><span class="o">/</span><span class="p">{</span><span class="nx">id</span><span class="p">}</span><span class="o">/</span><span class="nx">survey_spec</span><span class="o">/</span><span class="nx">dynamic_choices</span><span class="o">/</span>
+</code></pre></div>
+
+<h3 id="permission">Permission</h3>
+<p>Requires <code>start</code> permission on the job template (same as launching).</p>
+<h3 id="request-body">Request Body</h3>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;variables&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;target_host&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;environment&quot;</span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<ul>
+<li><code>variables</code> (optional): List of survey variable names to resolve.
+  If omitted, resolves all dynamic choice questions.</li>
+</ul>
+<h3 id="response">Response</h3>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;target_host&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;choices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;web-01&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;web-02&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;db-01&quot;</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;source_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;db_query&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;environment&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;choices&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;staging&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;production&quot;</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;source_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;api_endpoint&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<hr />
+<h2 id="validation-rules">Validation Rules</h2>
+<ol>
+<li><code>dynamic_choices</code> is only valid on <code>multiplechoice</code> and <code>multiselect</code> types</li>
+<li>When <code>dynamic_choices.enabled</code> is <code>true</code>, static <code>choices</code> field is not required</li>
+<li>During job launch, answers to dynamic choice questions skip static choice validation</li>
+<li>The <code>source_type</code> must be one of: <code>db_query</code>, <code>api_endpoint</code>, <code>jinja2</code></li>
+<li>DB query <code>model</code> must be from the allowed list</li>
+<li>DB query <code>field</code> must be from: <code>name</code>, <code>id</code>, <code>description</code></li>
+<li>API endpoint requires a non-empty <code>url</code></li>
+<li>Jinja2 requires a non-empty <code>template</code></li>
+<li><code>cache_ttl</code> must be a non-negative integer</li>
+</ol>
+<hr />
+<h2 id="frontend-behavior">Frontend Behavior</h2>
+<ol>
+<li>When the Launch Dialog opens, it detects survey questions with <code>dynamic_choices.enabled</code></li>
+<li>A <code>POST</code> request is sent to the <code>dynamic_choices/</code> endpoint to resolve choices</li>
+<li>Dropdown shows a loading spinner while choices are being fetched</li>
+<li>A refresh button allows re-fetching choices on demand</li>
+<li>The <code>dynamic</code> badge is displayed on questions with dynamic choices in both the
+   survey editor and the launch dialog</li>
+<li>The survey editor provides a UI to configure dynamic choices sources</li>
+</ol>
+<hr />
+<h2 id="caching">Caching</h2>
+<ul>
+<li>Resolved choices are cached in Django's cache backend (Redis)</li>
+<li>Cache key includes the variable name and full source configuration hash</li>
+<li>Default TTL: 60 seconds</li>
+<li>Set <code>cache_ttl: 0</code> to disable caching</li>
+<li>Cache is shared across all users and launch requests</li>
+</ul>
+<hr />
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>Maximum 500 choices returned per question (to prevent UI issues)</li>
+<li>Jinja2 templates run in a restricted sandbox (no file I/O)</li>
+<li>External API requests have a configurable timeout (default 10s)</li>
+<li>DB query filters are limited to safe field lookups for security</li>
+</ul>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

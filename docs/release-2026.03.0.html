@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Release Notes v2026.03.0 — Forge Platform Docs</title>
+  <meta name="description" content="Release Notes v2026.03.0 documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/release-2026.03.0.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="forge-2026030-release-notes">Forge 2026.03.0 — Release Notes</h1>
+<p><strong>Release date:</strong> 2026-03-11
+<strong>Based on:</strong> AWX 24.6.1
+<strong>License:</strong> Apache License 2.0</p>
+<hr />
+<h2 id="overview">Overview</h2>
+<p>Forge 2026.03.0 is the first official release — a complete modernization of AWX 24.6.1 across 9 development phases spanning 25 weeks. Every layer has been upgraded: dependencies, backend, frontend, Docker images, deployment stack, and CI/CD.</p>
+<hr />
+<h2 id="highlights">Highlights</h2>
+<h3 id="modern-stack">Modern Stack</h3>
+<ul>
+<li><strong>Python 3.12</strong> (from 3.11)</li>
+<li><strong>Node.js 20</strong> (from 18)</li>
+<li><strong>Django 4.2.17</strong> with 40+ upgraded packages</li>
+<li><strong>React 18 + TypeScript + Vite + Tailwind CSS</strong> (new Forge UI)</li>
+<li><strong>Channels 4 / Daphne 4 / Cython 3</strong> migration completed</li>
+</ul>
+<h3 id="new-forge-ui">New Forge UI</h3>
+<ul>
+<li>Complete rewrite in React 18 with TypeScript</li>
+<li>Vite build system (replaces CRA/react-scripts)</li>
+<li>Tailwind CSS for styling (replaces PatternFly 4 + Styled Components)</li>
+<li>Dashboard with real-time job status, host counts, project health</li>
+<li>Full CRUD for all major resources (templates, credentials, projects, inventories, hosts, organizations, teams, users, notification templates, schedules)</li>
+<li>Job output streaming with ANSI color support</li>
+<li>Workflow visualizer (read-only)</li>
+<li>Survey editor for job/workflow templates</li>
+<li>Copy/clone support for templates, credentials, notifications</li>
+<li>Settings management UI with per-category editing</li>
+<li>Force password change on first superuser login</li>
+<li>Legacy UI preserved at <code>/ui_legacy/</code></li>
+</ul>
+<h3 id="production-docker-compose">Production Docker Compose</h3>
+<ul>
+<li>6-service deployment: PostgreSQL 15, Redis 7, init, web, task, Nginx</li>
+<li>TLS termination via Nginx reverse proxy</li>
+<li>Automated backup/restore scripts</li>
+<li>Health checks on all services</li>
+<li>Environment-based configuration (<code>.env.example</code> template)</li>
+</ul>
+<h3 id="dual-docker-images">Dual Docker Images</h3>
+<ul>
+<li><strong>CentOS Stream 9</strong> — 882MB (<code>forge:2026.03.0-centos</code>)</li>
+<li><strong>Ubuntu 24.04</strong> — 932MB (<code>forge:2026.03.0-ubuntu</code>)</li>
+</ul>
+<h3 id="cicd-pipelines">CI/CD Pipelines</h3>
+<ul>
+<li><strong>GitLab CI</strong> (<code>.gitlab-ci.yml</code>) — 5 stages: lint, test, build, security, release</li>
+<li><strong>Jenkins</strong> (<code>Jenkinsfile</code>) — equivalent pipeline with parallel stages</li>
+<li>Version derived from git tag (<code>v2026.03.0</code> → <code>2026.03.0</code>)</li>
+<li>Automated Harbor registry push on tag release</li>
+<li>pip-audit + Trivy security scanning integrated</li>
+</ul>
+<hr />
+<h2 id="quality-metrics">Quality Metrics</h2>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Python unit tests</td>
+<td>1237 passed, 0 failed</td>
+</tr>
+<tr>
+<td>Frontend unit tests</td>
+<td>42 passed, 0 failed</td>
+</tr>
+<tr>
+<td>Functional API tests</td>
+<td>989 passed, 0 failed, 1 skipped</td>
+</tr>
+<tr>
+<td>Python lint (flake8)</td>
+<td>0 errors</td>
+</tr>
+<tr>
+<td>Frontend lint (tsc)</td>
+<td>0 errors</td>
+</tr>
+<tr>
+<td>Python CVEs (pip-audit)</td>
+<td>15 remaining (0 critical runtime)</td>
+</tr>
+<tr>
+<td>Container CVEs (Trivy)</td>
+<td>0 CRITICAL</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="breaking-changes">Breaking Changes</h2>
+<ul>
+<li><strong>Minimum Python version</strong>: 3.12 (was 3.11)</li>
+<li><strong>Minimum Node.js version</strong>: 20 (was 18)</li>
+<li><strong>CalVer versioning</strong>: version scheme changed from SemVer (<code>24.6.x</code>) to CalVer (<code>2026.03.0</code>)</li>
+<li><strong>aioredis removed</strong>: replaced by redis-py (channels 4 migration)</li>
+<li><strong>async-timeout removed</strong>: Python 3.12 has <code>asyncio.timeout</code> built-in</li>
+<li><strong>Frontend</strong>: new Forge UI at <code>/</code>, legacy AWX UI moved to <code>/ui_legacy/</code></li>
+</ul>
+<hr />
+<h2 id="dependency-changes-major">Dependency Changes (Major)</h2>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Before</th>
+<th>After</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Django</td>
+<td>4.2.10</td>
+<td>4.2.17</td>
+</tr>
+<tr>
+<td>channels</td>
+<td>3.0.5</td>
+<td>4.1.0</td>
+</tr>
+<tr>
+<td>daphne</td>
+<td>3.0.2</td>
+<td>4.1.2</td>
+</tr>
+<tr>
+<td>cryptography</td>
+<td>41.0.7</td>
+<td>42.0.8</td>
+</tr>
+<tr>
+<td>Cython</td>
+<td>0.29.37</td>
+<td>3.0.11</td>
+</tr>
+<tr>
+<td>grpcio</td>
+<td>1.62.2</td>
+<td>1.67.1</td>
+</tr>
+<tr>
+<td>twisted</td>
+<td>24.3.0</td>
+<td>24.7.0</td>
+</tr>
+<tr>
+<td>boto3</td>
+<td>1.34.42</td>
+<td>1.35.36</td>
+</tr>
+<tr>
+<td>redis</td>
+<td>5.0.1</td>
+<td>5.2.1</td>
+</tr>
+<tr>
+<td>aiohttp</td>
+<td>3.9.3</td>
+<td>3.10.10</td>
+</tr>
+<tr>
+<td>psutil</td>
+<td>5.9.8</td>
+<td>6.1.0</td>
+</tr>
+<tr>
+<td>pip (build)</td>
+<td>21.2.4</td>
+<td>24.0</td>
+</tr>
+<tr>
+<td>setuptools (build)</td>
+<td>69.0.2</td>
+<td>70.0.0</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="build-fixes-applied">Build Fixes Applied</h2>
+<ol>
+<li>OpenSSL version pin removed (CentOS Stream 9 repo changes)</li>
+<li>Rsyslog version pin removed</li>
+<li>django-ansible-base pinned to stable <code>2024.9.4</code> (was <code>@devel</code>)</li>
+<li>Argparse crash fix for Python 3.12.8+ (<code>_parse_known_args</code> intermixed parameter)</li>
+<li>Ubuntu Dockerfile: npm package, pkg-config, bash brace expansion, storage.conf lookup</li>
+<li>pip hash reset after Node.js upgrade in Dockerfile</li>
+</ol>
+<hr />
+<h2 id="deployment">Deployment</h2>
+<h3 id="quick-start-docker-compose">Quick Start (Docker Compose)</h3>
+<div class="codehilite"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>tools/docker-compose-prod
+cp<span class="w"> </span>.env.example<span class="w"> </span>.env
+<span class="c1"># Edit .env with your secrets</span>
+docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+
+<h3 id="docker-images">Docker Images</h3>
+<div class="codehilite"><pre><span></span><code><span class="c1"># CentOS (default)</span>
+docker<span class="w"> </span>pull<span class="w"> </span>forge:2026.03.0
+
+<span class="c1"># Ubuntu</span>
+docker<span class="w"> </span>pull<span class="w"> </span>forge:2026.03.0-ubuntu
+</code></pre></div>
+
+<hr />
+<h2 id="full-changelog">Full Changelog</h2>
+<p>See <a href="../CHANGELOG.md">CHANGELOG.md</a> for the complete list of changes across all 9 phases.</p>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

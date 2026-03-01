@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backend (Django) — Forge Platform Docs</title>
+  <meta name="description" content="Backend (Django) documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/backend.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="02-backend-django">02 — Backend (Django)</h1>
+<p>Overview of backend modules — what each part does, where to find things, and what to watch out for.</p>
+<hr />
+<h2 id="django-applications">Django Applications</h2>
+<table>
+<thead>
+<tr>
+<th>App</th>
+<th>Path</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>forge.main</code></td>
+<td><code>forge/main/</code></td>
+<td>Core: models, tasks, signals, migrations, commands</td>
+</tr>
+<tr>
+<td><code>forge.api</code></td>
+<td><code>forge/api/</code></td>
+<td>REST API: views, serializers, URL routing</td>
+</tr>
+<tr>
+<td><code>forge.conf</code></td>
+<td><code>forge/conf/</code></td>
+<td>Database-backed settings system</td>
+</tr>
+<tr>
+<td><code>forge.sso</code></td>
+<td><code>forge/sso/</code></td>
+<td>SSO authentication (LDAP, SAML, social)</td>
+</tr>
+<tr>
+<td><code>forge.ui_next</code></td>
+<td><code>forge/ui_next/</code></td>
+<td>React frontend (served through Django)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="models-where-things-live">Models — Where things live</h2>
+<p>All models are in <code>forge/main/models/</code>. Each file covers one domain area:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Contents</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>base.py</code></td>
+<td>Base classes for all models</td>
+<td><code>PrimordialModel</code> adds <code>created_by</code>, <code>modified_by</code> — every model has these</td>
+</tr>
+<tr>
+<td><code>organization.py</code></td>
+<td>Organization, Team, Profile</td>
+<td>Organization is the top-level container — <strong>everything</strong> belongs to one</td>
+</tr>
+<tr>
+<td><code>unified_jobs.py</code></td>
+<td>UnifiedJobTemplate, UnifiedJob</td>
+<td>Abstract base for ALL job types — key to understanding the system</td>
+</tr>
+<tr>
+<td><code>jobs.py</code></td>
+<td>JobTemplate, Job, JobHostSummary</td>
+<td>Template defines "what to run", Job is "one execution of it"</td>
+</tr>
+<tr>
+<td><code>inventory.py</code></td>
+<td>Inventory, Host, Group, InventorySource</td>
+<td>Host/Group hierarchy, cloud sync sources</td>
+</tr>
+<tr>
+<td><code>projects.py</code></td>
+<td>Project, ProjectUpdate</td>
+<td>Git repository with playbooks</td>
+</tr>
+<tr>
+<td><code>credentials/</code></td>
+<td>Credential, CredentialType</td>
+<td>Encrypted secrets — <strong>never</strong> plaintext in the database</td>
+</tr>
+<tr>
+<td><code>workflow.py</code></td>
+<td>WorkflowJobTemplate, nodes</td>
+<td>DAG orchestration — success/failure/always branches</td>
+</tr>
+<tr>
+<td><code>ha.py</code></td>
+<td>Instance, InstanceGroup</td>
+<td>Cluster nodes and capacity</td>
+</tr>
+<tr>
+<td><code>events.py</code></td>
+<td>JobEvent (and variants)</td>
+<td>Output for every job — <strong>partitioned table</strong></td>
+</tr>
+<tr>
+<td><code>notifications.py</code></td>
+<td>NotificationTemplate</td>
+<td>Email, Slack, webhook, PagerDuty...</td>
+</tr>
+<tr>
+<td><code>schedules.py</code></td>
+<td>Schedule</td>
+<td>iCal recurrence rules for automatic execution</td>
+</tr>
+<tr>
+<td><code>activity_stream.py</code></td>
+<td>ActivityStream</td>
+<td>Audit log of all changes</td>
+</tr>
+<tr>
+<td><code>mixins.py</code></td>
+<td>SurveyJobTemplateMixin</td>
+<td>Survey system — static and dynamic choices (see <code>docs/13-dynamic-surveys.md</code>)</td>
+</tr>
+<tr>
+<td><code>audit.py</code></td>
+<td>AuditEvent</td>
+<td>Immutable security audit log — credential access, auth, permissions (see <code>docs/14-audit-trail.md</code>)</td>
+</tr>
+<tr>
+<td><code>eda.py</code></td>
+<td>EventRule, EventLog, OutboundWebhook</td>
+<td>Event-Driven Automation — webhook rules, condition engine, outbound hooks (see <code>docs/15-event-driven-automation.md</code>)</td>
+</tr>
+<tr>
+<td><code>drift.py</code></td>
+<td>HostFactSnapshot, DriftDetection, DriftAlertRule, DriftAlert</td>
+<td>Drift Detection — fact snapshots, change tracking, alert rules (see <code>docs/16-drift-detection.md</code>)</td>
+</tr>
+<tr>
+<td><code>service_catalog.py</code></td>
+<td>ServiceCatalogItem, ServiceRequest</td>
+<td>Self-Service Portal — curated catalog wrapping JT/WFJT, request lifecycle with optional approval (see <code>docs/17-self-service-portal.md</code>)</td>
+</tr>
+<tr>
+<td><code>webauthn.py</code></td>
+<td>WebAuthnCredential, WebAuthnRegistrationChallenge, WebAuthnAuthenticationChallenge</td>
+<td>FIDO2 / WebAuthn — passwordless and second-factor authentication (see <code>docs/18-oidc-webauthn.md</code>)</td>
+</tr>
+<tr>
+<td><code>policy.py</code></td>
+<td>Policy, PolicyDecision</td>
+<td>Policy-as-Code (OPA) — Rego rules evaluated before every launch (see <code>docs/19-policy-as-code.md</code>)</td>
+</tr>
+<tr>
+<td><code>scanner.py</code></td>
+<td>Scanner, ScanResult, ScanFinding</td>
+<td>IaC scanning &amp; supply chain security — ansible-lint / checkov / pip-audit run before every launch (see <code>docs/20-iac-scanning.md</code>). Companion package: <code>forge/main/scanning/</code> (runner + tool adapters).</td>
+</tr>
+<tr>
+<td><code>observability/</code></td>
+<td>(package, no ORM models)</td>
+<td>OpenTelemetry bootstrap + helpers + tracing seams + metric handles + collector health probe. Initialized from <code>forge/asgi.py</code> / <code>forge/wsgi.py</code> / Celery boot. See <code>docs/21-observability.md</code>.</td>
+</tr>
+<tr>
+<td><code>tenancy.py</code></td>
+<td>TenantUsage, TenantQuotaEvent, TenantIsolationEvent</td>
+<td>Multi-tenancy v1 — per-tenant quotas, branding, and cross-tenant audit layered on top of Organization. Companion package: <code>forge/main/tenancy/</code> (pure helpers, quota gate, provisioning, branding lookup, usage reconciliation, isolation middleware). Quota gate runs <strong>before</strong> Policy-as-Code and IaC Scanning at job launch. See <code>docs/22-multi-tenancy.md</code>.</td>
+</tr>
+<tr>
+<td><code>rbac.py</code></td>
+<td>Role</td>
+<td>RBAC system — roles and permissions</td>
+</tr>
+<tr>
+<td><code>oauth.py</code></td>
+<td>OAuth2Application, Token</td>
+<td>API tokens</td>
+</tr>
+<tr>
+<td><code>execution_environments.py</code></td>
+<td>ExecutionEnvironment</td>
+<td>Container image reference for execution</td>
+</tr>
+</tbody>
+</table>
+<h3 id="watch-out">Watch out</h3>
+<ul>
+<li>
+<p><strong>UnifiedJob pattern:</strong> Every executable (JobTemplate, Project, InventorySource) follows
+  the same pattern — a template creates an instance. If you understand <code>UnifiedJobTemplate → UnifiedJob</code>,
+  you understand all job types.</p>
+</li>
+<li>
+<p><strong>Credential encryption:</strong> Fields marked as <code>secret</code> in <code>CredentialType.inputs</code> are
+  encrypted before saving. Never read credentials directly from the database — use the API.</p>
+</li>
+<li>
+<p><strong>Computed fields on Inventory:</strong> <code>total_hosts</code>, <code>hosts_with_active_failures</code>, etc.
+  are updated via signals. If you add a host directly to the database (not through the API),
+  these fields won't update until <code>update_computed_fields()</code> is called.</p>
+</li>
+<li>
+<p><strong>Organization is required:</strong> Almost every resource requires an <code>organization</code> FK. Without
+  an organization, RBAC won't work because roles are inherited from the organization.</p>
+</li>
+</ul>
+<hr />
+<h2 id="rest-api-structure">REST API — Structure</h2>
+<p>The API is in <code>forge/api/</code> and follows DRF (Django REST Framework) conventions.</p>
+<h3 id="file-locations">File locations</h3>
+<table>
+<thead>
+<tr>
+<th>What you're looking for</th>
+<th>Where to find it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API endpoints (URL routing)</td>
+<td><code>forge/api/urls/</code> — one file per resource</td>
+</tr>
+<tr>
+<td>View logic (what the endpoint does)</td>
+<td><code>forge/api/views/</code> — one file per resource</td>
+</tr>
+<tr>
+<td>Serialization (JSON ↔ Model)</td>
+<td><code>forge/api/serializers/</code> — data transformation</td>
+</tr>
+<tr>
+<td>Permissions</td>
+<td><code>forge/api/permissions.py</code> — access checks</td>
+</tr>
+<tr>
+<td>Authentication</td>
+<td><code>forge/api/authentication.py</code> — session, token, basic</td>
+</tr>
+<tr>
+<td>Pagination</td>
+<td><code>forge/api/pagination.py</code> — default 25 per page</td>
+</tr>
+<tr>
+<td>Filtering</td>
+<td><code>forge/api/filters.py</code> — search, ordering, field filters</td>
+</tr>
+</tbody>
+</table>
+<h3 id="api-conventions">API conventions</h3>
+<ul>
+<li><strong>List:</strong> <code>GET /api/v2/{resource}/</code> → paginated JSON with <code>count</code>, <code>next</code>, <code>previous</code>, <code>results</code></li>
+<li><strong>Detail:</strong> <code>GET /api/v2/{resource}/{id}/</code> → single object</li>
+<li><strong>Create:</strong> <code>POST /api/v2/{resource}/</code> → body with data</li>
+<li><strong>Update:</strong> <code>PATCH /api/v2/{resource}/{id}/</code> → partial update</li>
+<li><strong>Delete:</strong> <code>DELETE /api/v2/{resource}/{id}/</code> → 204 No Content</li>
+<li><strong>Actions:</strong> <code>POST /api/v2/{resource}/{id}/{action}/</code> → launch, cancel, update...</li>
+<li><strong>Nested:</strong> <code>GET /api/v2/{parent}/{id}/{child}/</code> → related resources</li>
+</ul>
+<h3 id="watch-out_1">Watch out</h3>
+<ul>
+<li>
+<p><strong><code>related</code> field:</strong> Every API response has a <code>related</code> dict with URLs to related
+  resources. Use this instead of manually constructing URLs.</p>
+</li>
+<li>
+<p><strong><code>summary_fields</code>:</strong> Inline data about related objects (organization name, project name...).
+  This eliminates the need for additional API calls.</p>
+</li>
+<li>
+<p><strong>OPTIONS request:</strong> Every endpoint returns metadata about available fields and actions
+  via OPTIONS. Useful for dynamically generating forms.</p>
+</li>
+<li>
+<p><strong>RBAC filtering:</strong> List endpoints automatically filter results based on user permissions.
+  An admin sees everything; a regular user sees only what they have access to.</p>
+</li>
+</ul>
+<hr />
+<h2 id="signals-automatic-side-effect-actions">Signals — Automatic side-effect actions</h2>
+<p>Signals are in <code>forge/main/signals.py</code> and automatically react to database changes:</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Post-save on any model</td>
+<td>Creates a record in the Activity Stream</td>
+</tr>
+<tr>
+<td>Host create/delete</td>
+<td>Updates computed fields on the Inventory</td>
+</tr>
+<tr>
+<td>User change (superuser)</td>
+<td>Synchronizes the system_administrator role</td>
+</tr>
+<tr>
+<td>Group deletion</td>
+<td>Moves child groups and hosts to the parent</td>
+</tr>
+<tr>
+<td>Workflow changes</td>
+<td>Updates approval template lifecycle</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Watch out:</strong> Signals execute synchronously — if a signal throws an exception,
+the entire transaction is rolled back. If you see unexpected IntegrityError,
+check if a signal is attempting something invalid.</p>
+<hr />
+<h2 id="management-commands">Management Commands</h2>
+<p>Commands are in <code>forge/main/management/commands/</code>. They are run with <code>forge-manage</code>
+(or <code>awx-manage</code> — both work, backward compatibility).</p>
+<h3 id="most-important-commands">Most important commands</h3>
+<p><strong>Instance management:</strong>
+- <code>forge-manage provision_instance --hostname=node1</code> — register a new cluster node
+- <code>forge-manage deprovision_instance --hostname=node1</code> — remove a node
+- <code>forge-manage list_instances</code> — show all nodes with capacity</p>
+<p><strong>Users:</strong>
+- <code>forge-manage createsuperuser</code> — create admin user
+- <code>forge-manage update_password --username=admin --password=new</code> — reset password</p>
+<p><strong>Database:</strong>
+- <code>forge-manage migrate</code> — apply migrations
+- <code>forge-manage check_db</code> — verify database connectivity
+- <code>forge-manage dbshell</code> — open PostgreSQL shell</p>
+<p><strong>Cleanup (run periodically):</strong>
+- <code>forge-manage cleanup_jobs --days=90</code> — delete old jobs and events
+- <code>forge-manage cleanup_sessions</code> — delete expired sessions
+- <code>forge-manage cleanup_tokens</code> — delete expired OAuth tokens</p>
+<p><strong>Diagnostics:</strong>
+- <code>forge-manage check_instance_ready</code> — is the node ready for work
+- <code>forge-manage stats</code> — system statistics</p>
+<h3 id="watch-out_2">Watch out</h3>
+<ul>
+<li>
+<p><code>cleanup_jobs</code> is <strong>critical</strong> for production. Without it, the job event table grows
+  without limit. Recommendation: set up as a System Job that runs daily.</p>
+</li>
+<li>
+<p><code>provision_instance</code> is automatically called in the init script during deployment.
+  You only run it manually when adding new nodes to the cluster.</p>
+</li>
+</ul>
+<hr />
+<h2 id="configuration-system-two-levels">Configuration System — Two levels</h2>
+<h3 id="level-1-file-based-django-settings">Level 1: File-based (Django settings)</h3>
+<p>Loaded at startup, cannot be changed without restart.</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>forge/settings/defaults/base.py</code></td>
+<td>Core: DATABASES, INSTALLED_APPS, REST_FRAMEWORK</td>
+</tr>
+<tr>
+<td><code>forge/settings/defaults/auth.py</code></td>
+<td>Authentication backends</td>
+</tr>
+<tr>
+<td><code>forge/settings/defaults/jobs.py</code></td>
+<td>Job execution defaults</td>
+</tr>
+<tr>
+<td><code>forge/settings/defaults/celery_conf.py</code></td>
+<td>Celery/Redis configuration</td>
+</tr>
+<tr>
+<td><code>forge/settings/defaults/logging_conf.py</code></td>
+<td>Logging</td>
+</tr>
+<tr>
+<td><code>forge/settings/production.py</code></td>
+<td>Production overrides (DEBUG=False)</td>
+</tr>
+<tr>
+<td><code>/etc/tower/conf.d/*.py</code></td>
+<td>Per-module settings inside the container</td>
+</tr>
+</tbody>
+</table>
+<h3 id="level-2-database-backed-forge-conf-system">Level 2: Database-backed (Forge conf system)</h3>
+<p>Stored in PostgreSQL, changed via API (<code>/api/v2/settings/</code>) <strong>without restart</strong>.</p>
+<p>Registered in <code>forge/conf/</code> and covering: job timeouts, LDAP configuration,
+logging, notifications, and much more.</p>
+<p><strong>Watch out:</strong> Database settings <strong>override</strong> file settings. If something isn't
+working as expected, check if it's been overridden in the database:</p>
+<div class="codehilite"><pre><span></span><code>forge-manage<span class="w"> </span>print_setting<span class="w"> </span>SETTING_NAME
+</code></pre></div>
+
+<hr />
+<h2 id="migrations">Migrations</h2>
+<p>Forge has <strong>252 Django migrations</strong> in <code>forge/main/migrations/</code>.</p>
+<h3 id="watch-out_3">Watch out</h3>
+<ul>
+<li>
+<p>All migrations reference <code>forge.main.fields</code> — not <code>awx.main.fields</code>. If you
+  create a new migration, <code>makemigrations</code> will automatically use the correct prefix.</p>
+</li>
+<li>
+<p><strong>Never edit existing migrations</strong> — only add new ones.</p>
+</li>
+<li>
+<p>If a migration fails, check <code>forge-manage showmigrations | grep "\[ \]"</code>
+  to see which ones are unapplied.</p>
+</li>
+<li>
+<p>The init script automatically runs <code>migrate</code> during deployment.</p>
+</li>
+</ul>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

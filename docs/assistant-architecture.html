@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Assistant Architecture — Forge Platform Docs</title>
+  <meta name="description" content="AI Assistant Architecture documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/assistant-architecture.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="architecture">Architecture</h1>
+<h2 id="overview">Overview</h2>
+<p>Forge Assistant is a standalone microservice that provides AI-powered help for the Forge platform. It uses Retrieval-Augmented Generation (RAG) to answer questions based on indexed documentation.</p>
+<div class="codehilite"><pre><span></span><code>                    ┌─────────────────────────────────┐
+                    │         Forge Frontend           │
+                    │  (React chat panel component)    │
+                    └───────────────┬──────────────────┘
+                                    │ SSE (Server-Sent Events)
+                                    ▼
+                    ┌─────────────────────────────────┐
+                    │   Forge Assistant (all-in-one)   │
+                    │                                  │
+                    │  FastAPI  /api/v1/chat  → SSE    │
+                    │           /api/v1/health→ JSON   │
+                    │           /api/v1/index → reindex│
+                    │                                  │
+                    │  Ollama   gemma3:1b (LLM)        │
+                    │           nomic-embed-text (emb)  │
+                    │                                  │
+                    │  ChromaDB (embedded vector store) │
+                    └─────────────────────────────────┘
+</code></pre></div>
+
+<blockquote>
+<p><strong>Note:</strong> All three components (FastAPI, Ollama, ChromaDB) run inside a single Docker container. The entrypoint script starts Ollama and ChromaDB as background processes before launching the FastAPI server.</p>
+</blockquote>
+<h2 id="components">Components</h2>
+<h3 id="fastapi-application-app">FastAPI Application (<code>app/</code>)</h3>
+<p>The core service, responsible for:</p>
+<ul>
+<li>Receiving chat requests with optional page context and history</li>
+<li>Querying ChromaDB for relevant documentation chunks</li>
+<li>Building a context-enriched prompt for the LLM</li>
+<li>Streaming the response token-by-token via SSE</li>
+</ul>
+<p><strong>Key files:</strong>
+- <code>app/main.py</code> — FastAPI app, endpoints, CORS
+- <code>app/rag.py</code> — RAG pipeline (embed, retrieve, generate, stream)
+- <code>app/indexer.py</code> — Document loading, chunking, indexing
+- <code>app/config.py</code> — Pydantic settings from environment</p>
+<h3 id="ollama-llm-server">Ollama (LLM Server)</h3>
+<p>Runs the language model locally inside the same container. Two models are used:
+- <strong>gemma3:1b</strong> (default, or configured model) — for chat generation
+- <strong>nomic-embed-text</strong> — for generating document/query embeddings</p>
+<p>The Ollama binary is copied from the official <code>ollama/ollama</code> image at build time. GPU acceleration is optional but recommended for larger models.</p>
+<h3 id="chromadb-vector-store">ChromaDB (Vector Store)</h3>
+<p>Stores document chunks as vectors for similarity search. When a user asks a question:
+1. The question is embedded using <code>nomic-embed-text</code>
+2. ChromaDB finds the top-K most similar document chunks
+3. These chunks become the context for the LLM</p>
+<h2 id="data-flow">Data Flow</h2>
+<h3 id="chat-request">Chat Request</h3>
+<div class="codehilite"><pre><span></span><code><span class="mf">1.</span><span class="w"> </span><span class="n">User</span><span class="w"> </span><span class="n">types</span><span class="w"> </span><span class="s">&quot;How do I create a scheduled job?&quot;</span>
+<span class="mf">2.</span><span class="w"> </span><span class="n">Frontend</span><span class="w"> </span><span class="n">sends</span><span class="w"> </span><span class="nb">POS</span><span class="n">T</span><span class="w"> </span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">v1</span><span class="o">/</span><span class="n">chat</span><span class="w"> </span><span class="n">with</span><span class="w"> </span><span class="n">message</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">page</span><span class="w"> </span><span class="kr">cont</span><span class="n">ext</span>
+<span class="mf">3.</span><span class="w"> </span><span class="n">Assistant</span><span class="w"> </span><span class="n">embeds</span><span class="w"> </span><span class="n">the</span><span class="w"> </span><span class="n">question</span><span class="w"> </span><span class="n">via</span><span class="w"> </span><span class="n">Ollama</span><span class="w"> </span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">embeddings</span>
+<span class="mf">4.</span><span class="w"> </span><span class="n">Assistant</span><span class="w"> </span><span class="n">queries</span><span class="w"> </span><span class="n">ChromaDB</span><span class="w"> </span><span class="kr">for</span><span class="w"> </span><span class="kr">to</span><span class="n">p</span><span class="w"> </span><span class="mf">5</span><span class="w"> </span><span class="n">relevant</span><span class="w"> </span><span class="n">doc</span><span class="w"> </span><span class="n">chunks</span>
+<span class="mf">5.</span><span class="w"> </span><span class="n">Assistant</span><span class="w"> </span><span class="n">builds</span><span class="w"> </span><span class="kr">sys</span><span class="n">tem</span><span class="w"> </span><span class="n">prompt</span><span class="w"> </span><span class="n">with</span><span class="w"> </span><span class="n">doc</span><span class="w"> </span><span class="kr">cont</span><span class="n">ext</span>
+<span class="mf">6.</span><span class="w"> </span><span class="n">Assistant</span><span class="w"> </span><span class="n">streams</span><span class="w"> </span><span class="n">response</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">Ollama</span><span class="w"> </span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">chat</span>
+<span class="mf">7.</span><span class="w"> </span><span class="n">Each</span><span class="w"> </span><span class="kr">to</span><span class="n">ken</span><span class="w"> </span><span class="n">is</span><span class="w"> </span><span class="n">sent</span><span class="w"> </span><span class="kr">to</span><span class="w"> </span><span class="n">frontend</span><span class="w"> </span><span class="n">as</span><span class="w"> </span><span class="n">SSE</span><span class="w"> </span><span class="kd">data</span><span class="w"> </span><span class="n">event</span>
+<span class="mf">8.</span><span class="w"> </span><span class="n">Frontend</span><span class="w"> </span><span class="n">renders</span><span class="w"> </span><span class="kr">to</span><span class="n">kens</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">real</span><span class="o">-</span><span class="n">time</span>
+</code></pre></div>
+
+<h3 id="document-indexing">Document Indexing</h3>
+<div class="codehilite"><pre><span></span><code><span class="mf">1.</span><span class="w"> </span><span class="n">Admin</span><span class="w"> </span><span class="n">calls</span><span class="w"> </span><span class="nb">POS</span><span class="n">T</span><span class="w"> </span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">v1</span><span class="o">/</span><span class="n">index</span><span class="w"> </span><span class="p">(</span><span class="ow">or</span><span class="w"> </span><span class="kr">run</span><span class="n">s</span><span class="w"> </span><span class="n">indexer</span><span class="w"> </span><span class="n">script</span><span class="p">)</span>
+<span class="mf">2.</span><span class="w"> </span><span class="n">Indexer</span><span class="w"> </span><span class="kr">read</span><span class="n">s</span><span class="w"> </span><span class="n">all</span><span class="w"> </span><span class="mf">.</span><span class="n">md</span><span class="w"> </span><span class="n">files</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="n">docs_to_index</span><span class="o">/</span>
+<span class="mf">3.</span><span class="w"> </span><span class="n">Each</span><span class="w"> </span><span class="n">file</span><span class="w"> </span><span class="n">is</span><span class="w"> </span><span class="n">split</span><span class="w"> </span><span class="nb">int</span><span class="n">o</span><span class="w"> </span><span class="n">overlapping</span><span class="w"> </span><span class="n">chunks</span><span class="w"> </span><span class="p">(</span><span class="mf">500</span><span class="w"> </span><span class="n">chars</span><span class="p">,</span><span class="w"> </span><span class="mf">50</span><span class="w"> </span><span class="n">overlap</span><span class="p">)</span>
+<span class="mf">4.</span><span class="w"> </span><span class="n">Each</span><span class="w"> </span><span class="n">chunk</span><span class="w"> </span><span class="n">is</span><span class="w"> </span><span class="n">embedded</span><span class="w"> </span><span class="n">via</span><span class="w"> </span><span class="n">Ollama</span><span class="w"> </span><span class="n">nomic</span><span class="o">-</span><span class="n">embed</span><span class="o">-</span><span class="n">text</span>
+<span class="mf">5.</span><span class="w"> </span><span class="n">Embeddings</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">text</span><span class="w"> </span><span class="n">stored</span><span class="w"> </span><span class="n">in</span><span class="w"> </span><span class="n">ChromaDB</span><span class="w"> </span><span class="n">collection</span><span class="w"> </span><span class="s">&quot;forge_docs&quot;</span>
+</code></pre></div>
+
+<h2 id="design-decisions">Design Decisions</h2>
+<h3 id="why-standalone-service-not-django-app">Why Standalone Service (Not Django App)?</h3>
+<ul>
+<li><strong>No Django dependency</strong> — FastAPI is lighter, async-native, no ORM needed</li>
+<li><strong>Optional</strong> — can be added/removed without touching core Forge</li>
+<li><strong>Independent scaling</strong> — can run on a separate GPU server</li>
+<li><strong>Independent release cycle</strong> — update models without redeploying Forge</li>
+</ul>
+<h3 id="why-ollama-not-openaiclaude-api">Why Ollama (Not OpenAI/Claude API)?</h3>
+<ul>
+<li><strong>Privacy</strong> — all data stays on your infrastructure</li>
+<li><strong>Cost</strong> — no API fees, no usage limits</li>
+<li><strong>Offline</strong> — works without internet</li>
+<li><strong>Control</strong> — choose and swap models freely</li>
+</ul>
+<h3 id="why-fastapi-not-flaskdjango">Why FastAPI (Not Flask/Django)?</h3>
+<ul>
+<li><strong>Native async</strong> — SSE streaming without workarounds</li>
+<li><strong>Fast</strong> — ASGI, built on Starlette</li>
+<li><strong>Auto docs</strong> — OpenAPI schema generated automatically</li>
+<li><strong>Minimal</strong> — no ORM, no admin, no migrations needed</li>
+</ul>
+<h3 id="why-chromadb-not-pineconeweaviate">Why ChromaDB (Not Pinecone/Weaviate)?</h3>
+<ul>
+<li><strong>Local</strong> — no cloud dependency</li>
+<li><strong>Python-native</strong> — simple API, no external clients</li>
+<li><strong>Lightweight</strong> — single container, ~500MB</li>
+<li><strong>Good enough</strong> — for &lt;100K document chunks, ChromaDB performs well</li>
+</ul>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

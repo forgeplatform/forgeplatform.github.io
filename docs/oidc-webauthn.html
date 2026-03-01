@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OIDC + WebAuthn — Forge Platform Docs</title>
+  <meta name="description" content="OIDC + WebAuthn documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/oidc-webauthn.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="18-oidc-webauthn">18 — OIDC + WebAuthn</h1>
+<p>Modern SSO via OIDC and phishing-resistant authentication via WebAuthn
+(FIDO2). Adds passwordless first-factor login, second-factor MFA, and
+"Sign in with OIDC" alongside the existing form / LDAP / SAML / RADIUS
+/ TACACS+ stack.</p>
+<hr />
+<h2 id="architecture">Architecture</h2>
+<div class="codehilite"><pre><span></span><code><span class="n">Login</span><span class="w"> </span><span class="n">page</span>
+<span class="w">   </span><span class="err">│</span>
+<span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="n">Username</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">password</span><span class="w"> </span><span class="err">───►</span><span class="w"> </span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">login</span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="n">form</span><span class="p">)</span><span class="w">         </span><span class="err">┐</span>
+<span class="w">   </span><span class="err">│</span><span class="w">                                                       </span><span class="err">│</span>
+<span class="w">   </span><span class="err">├──</span><span class="w"> </span><span class="s">&quot;Sign in with OIDC&quot;</span><span class="w">  </span><span class="err">───►</span><span class="w"> </span><span class="o">/</span><span class="n">sso</span><span class="o">/</span><span class="n">login</span><span class="o">/</span><span class="n">oidc</span><span class="o">/</span><span class="w">          </span><span class="err">│</span><span class="w">   </span><span class="n">primary</span><span class="w"> </span><span class="n">auth</span>
+<span class="w">   </span><span class="err">│</span><span class="w">                              </span><span class="p">(</span><span class="n">social</span><span class="o">-</span><span class="n">auth</span><span class="w"> </span><span class="n">redirect</span><span class="p">)</span><span class="w">   </span><span class="err">│</span>
+<span class="w">   </span><span class="err">│</span><span class="w">                                                       </span><span class="err">│</span>
+<span class="w">   </span><span class="err">└──</span><span class="w"> </span><span class="s">&quot;Sign in with security key&quot;</span><span class="w"> </span><span class="p">(</span><span class="n">passwordless</span><span class="p">)</span><span class="w">          </span><span class="err">│</span>
+<span class="w">        </span><span class="err">│</span><span class="w">                                                  </span><span class="err">│</span>
+<span class="w">        </span><span class="err">▼</span><span class="w">                                                  </span><span class="err">│</span>
+<span class="w">        </span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">v2</span><span class="o">/</span><span class="n">webauthn</span><span class="o">/</span><span class="n">authenticate</span><span class="o">/</span><span class="n">begin</span><span class="o">/</span><span class="w">  </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">options</span><span class="w">   </span><span class="err">│</span>
+<span class="w">        </span><span class="n">navigator</span><span class="p">.</span><span class="n">credentials</span><span class="p">.</span><span class="n">get</span><span class="p">()</span><span class="w"> </span><span class="kr">in</span><span class="w"> </span><span class="n">browser</span><span class="w">             </span><span class="err">│</span>
+<span class="w">        </span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">v2</span><span class="o">/</span><span class="n">webauthn</span><span class="o">/</span><span class="n">authenticate</span><span class="o">/</span><span class="n">complete</span><span class="o">/</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">login</span><span class="p">()</span><span class="w"> </span><span class="err">┘</span>
+<span class="w">                                                  </span><span class="err">│</span>
+<span class="w">                                                  </span><span class="err">▼</span>
+<span class="w">                              </span><span class="n">WebAuthnMfaEnforcementMiddleware</span>
+<span class="w">                                                  </span><span class="err">│</span>
+<span class="w">              </span><span class="err">┌───────────────────────────────────┼─────────────────────────┐</span>
+<span class="w">              </span><span class="err">│</span><span class="w">                                   </span><span class="err">│</span><span class="w">                         </span><span class="err">│</span>
+<span class="w">              </span><span class="err">▼</span><span class="w">                                   </span><span class="err">▼</span><span class="w">                         </span><span class="err">▼</span>
+<span class="w">   </span><span class="n">org</span><span class="w"> </span><span class="n">policy</span><span class="o">:</span><span class="w"> </span><span class="n">none</span><span class="w">           </span><span class="n">org</span><span class="w"> </span><span class="n">policy</span><span class="o">:</span><span class="w"> </span><span class="n">admins</span><span class="o">/</span><span class="kr">all</span><span class="w">             </span><span class="n">user</span><span class="w"> </span><span class="n">already</span><span class="w"> </span><span class="n">mfa_satisfied</span>
+<span class="w">   </span><span class="n">session</span><span class="p">.</span><span class="n">mfa_satisfied</span><span class="o">=</span><span class="n">user</span><span class="p">.</span><span class="n">id</span><span class="w">           </span><span class="n">session</span><span class="p">.</span><span class="n">mfa_pending</span><span class="o">=</span><span class="kr">true</span><span class="w">        </span><span class="n">proceed</span>
+<span class="w">                                           </span><span class="n">session</span><span class="p">.</span><span class="n">mfa_pending_user</span><span class="o">=</span><span class="n">user</span><span class="p">.</span><span class="n">id</span>
+<span class="w">                                                  </span><span class="err">│</span>
+<span class="w">                                                  </span><span class="err">▼</span>
+<span class="w">                                      </span><span class="n">Frontend</span><span class="w"> </span><span class="n">interstitial</span><span class="w"> </span><span class="o">/</span><span class="n">auth</span><span class="o">/</span><span class="n">mfa</span>
+<span class="w">                                                  </span><span class="err">│</span>
+<span class="w">                                </span><span class="o">/</span><span class="n">api</span><span class="o">/</span><span class="n">v2</span><span class="o">/</span><span class="n">webauthn</span><span class="o">/</span><span class="n">authenticate</span><span class="o">/</span><span class="p">{</span><span class="n">begin</span><span class="p">,</span><span class="n">complete</span><span class="p">}</span><span class="o">/</span>
+<span class="w">                                                  </span><span class="err">│</span>
+<span class="w">                                                  </span><span class="err">▼</span>
+<span class="w">                                       </span><span class="n">session</span><span class="p">.</span><span class="n">mfa_pending</span><span class="o">=</span><span class="kr">false</span><span class="w"> </span><span class="err">→</span><span class="w"> </span><span class="n">app</span>
+</code></pre></div>
+
+<p>The OIDC client is the existing <code>social_core.backends.open_id_connect.OpenIdConnectAuth</code>
+that AWX vendored. JIT user creation and org/team mapping reuse the
+existing <code>forge/sso/social_pipeline.py</code>. We add a few extra settings
+(button label, default scopes override, organization/team JSON maps)
+and the frontend "Sign in with OIDC" button.</p>
+<hr />
+<h2 id="webauthn-models-forgemainmodelswebauthnpy">WebAuthn models — <code>forge/main/models/webauthn.py</code></h2>
+<h3 id="webauthncredentialcreatedmodifiedmodel"><code>WebAuthnCredential(CreatedModifiedModel)</code></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user</code></td>
+<td>FK auth.User (CASCADE)</td>
+</tr>
+<tr>
+<td><code>credential_id</code></td>
+<td>BinaryField unique — raw cred ID from authenticator</td>
+</tr>
+<tr>
+<td><code>public_key</code></td>
+<td>BinaryField — COSE pubkey</td>
+</tr>
+<tr>
+<td><code>sign_count</code></td>
+<td>Authenticator counter; replay protection</td>
+</tr>
+<tr>
+<td><code>transports</code></td>
+<td>JSON list (<code>usb</code>/<code>nfc</code>/<code>ble</code>/<code>internal</code>/<code>hybrid</code>)</td>
+</tr>
+<tr>
+<td><code>aaguid</code></td>
+<td>Authenticator AAGUID</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>User-facing nickname</td>
+</tr>
+<tr>
+<td><code>last_used_at</code></td>
+<td>Updated on every successful assertion</td>
+</tr>
+<tr>
+<td><code>backup_eligible</code> / <code>backup_state</code></td>
+<td>Multi-device hint flags</td>
+</tr>
+</tbody>
+</table>
+<h3 id="challenge-models">Challenge models</h3>
+<p><code>WebAuthnRegistrationChallenge</code> and <code>WebAuthnAuthenticationChallenge</code>
+share <code>challenge</code> (random bytes), <code>created_at</code>, <code>expires_at</code>. TTL is
+<strong>5 minutes</strong>, controlled by <code>CHALLENGE_TTL_SECONDS</code> in
+<code>forge/api/views/webauthn.py</code>. Expired rows are purged opportunistically
+on every begin call (<code>_purge_expired_challenges()</code>).</p>
+<h3 id="pure-helpers-used-by-middleware-tested-standalone">Pure helpers (used by middleware + tested standalone)</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">is_webauthn_required</span><span class="p">(</span><span class="n">setting</span><span class="p">,</span> <span class="n">is_admin</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+<span class="n">is_replay</span><span class="p">(</span><span class="n">stored_count</span><span class="p">,</span> <span class="n">presented_count</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</code></pre></div>
+
+<p><code>is_replay</code> allows <code>(0, 0)</code> (some authenticators never bump the counter)
+but rejects equal-or-decreasing counts otherwise.</p>
+<hr />
+<h2 id="rest-api">REST API</h2>
+<p>Mounted under <code>/api/v2/webauthn/</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>credentials/</code></td>
+<td>List the calling user's credentials</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>credentials/{id}/</code></td>
+<td>Rename (<code>{label}</code>)</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>credentials/{id}/</code></td>
+<td>Delete</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>register/begin/</code></td>
+<td>Returns <code>publicKeyCredentialCreationOptions</code> JSON; stores a fresh challenge</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>register/complete/</code></td>
+<td>Verifies attestation with <code>webauthn.verify_registration_response</code>, persists the credential</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>authenticate/begin/</code></td>
+<td>Returns <code>publicKeyCredentialRequestOptions</code>. <code>username</code> body field optional (passwordless flows often omit it)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>authenticate/complete/</code></td>
+<td>Verifies assertion via <code>verify_authentication_response</code>, runs <code>is_replay</code>, then either marks <code>session.mfa_pending=false</code> (MFA path) or calls Django <code>login()</code> (passwordless path)</td>
+</tr>
+</tbody>
+</table>
+<p>Origin and Relying-Party ID are derived from the request:
+- <code>_origin(request)</code> = <code>request.build_absolute_uri('/').rstrip('/')</code>
+- <code>_rp_id(request)</code> = <code>request.get_host().split(':')[0]</code></p>
+<p>This means the same image works on <code>https://localhost</code>,
+<code>https://forge.example.com</code>, etc., without configuration.</p>
+<hr />
+<h2 id="oidc">OIDC</h2>
+<h3 id="settings-forgessoconfpy">Settings (<code>forge/sso/conf.py</code>)</h3>
+<p>The four core OIDC settings already existed (legacy AWX heritage):</p>
+<ul>
+<li><code>SOCIAL_AUTH_OIDC_KEY</code>, <code>SOCIAL_AUTH_OIDC_SECRET</code></li>
+<li><code>SOCIAL_AUTH_OIDC_OIDC_ENDPOINT</code>, <code>SOCIAL_AUTH_OIDC_VERIFY_SSL</code></li>
+</ul>
+<p>This feature adds four more under the same <code>oidc</code> category slug:</p>
+<ul>
+<li><code>SOCIAL_AUTH_OIDC_BUTTON_LABEL</code> — text on the login page button.</li>
+<li><code>SOCIAL_AUTH_OIDC_SCOPE</code> — list, default <code>['openid','profile','email']</code>.</li>
+<li><code>SOCIAL_AUTH_OIDC_ORGANIZATION_MAP</code> — same shape as the SAML org map.</li>
+<li><code>SOCIAL_AUTH_OIDC_TEAM_MAP</code> — same shape as the SAML team map.</li>
+</ul>
+<h3 id="backend-wiring">Backend wiring</h3>
+<p>The base <code>social_core.backends.open_id_connect.OpenIdConnectAuth</code> is
+already wired into <code>AUTHENTICATION_BACKENDS</code> via the existing
+"add backend if its required settings are present" pattern in
+<code>forge/sso/fields.py</code>. The login URL is <code>/sso/login/oidc/</code> (handled by
+<code>social-auth-app-django</code> URL routing — no new view needed).</p>
+<p>A <code>ForgeOIDCAuth</code> subclass is provided as a hook for future custom claim
+mapping but is not currently registered.</p>
+<hr />
+<h2 id="mfa-enforcement-middleware">MFA enforcement middleware</h2>
+<p><code>forge/main/middleware.py::WebAuthnMfaEnforcementMiddleware</code></p>
+<p>Runs after <code>AuthenticationMiddleware</code>. For every authenticated request:</p>
+<ol>
+<li>Skip the WebAuthn endpoints themselves, <code>/api/login/</code>, <code>/api/logout/</code>,
+   <code>/sso/</code>, <code>/api/v2/me/</code>, <code>/api/v2/ping/</code>, <code>/api/v2/config/</code>.</li>
+<li>If <code>session['mfa_satisfied_for'] == user.id</code>, allow.</li>
+<li>Iterate the user's organizations, fold over their <code>webauthn_required</code>
+   setting via <code>is_webauthn_required(setting, is_admin)</code>.</li>
+<li>If any org requires MFA and the session hasn't satisfied it yet:</li>
+<li><code>session['mfa_pending'] = True</code></li>
+<li><code>session['mfa_pending_user'] = user.id</code></li>
+<li>Frontend reads this and navigates to <code>/auth/mfa</code>.</li>
+</ol>
+<p><code>Organization.webauthn_required</code> is a CharField with choices
+<code>'none' / 'admins' / 'all'</code> (default <code>none</code>).</p>
+<hr />
+<h2 id="tests-tests_standalonetest_webauthnpy">Tests — <code>tests_standalone/test_webauthn.py</code></h2>
+<p>16 tests, no Django bootstrap (uses module stubs the same way
+<code>test_drift.py</code> and <code>test_service_catalog.py</code> do):</p>
+<ul>
+<li>Policy resolver: full <code>(setting, is_admin) → required</code> matrix.</li>
+<li>Replay guard: increasing / equal / decreasing / both-zero / zero→one.</li>
+<li>Challenge TTL arithmetic.</li>
+<li>URL-safe base64 round-trip helpers.</li>
+</ul>
+<p>Run with: <code>python -m unittest tests_standalone.test_webauthn -v</code></p>
+<hr />
+<h2 id="end-to-end-manual-verification">End-to-end manual verification</h2>
+<p>Requires Chromium and either a hardware security key, Touch ID, or
+Windows Hello. The browser only allows WebAuthn over HTTPS — use the
+deployment behind nginx.</p>
+<ol>
+<li>Open <code>/me/security</code>, name a credential, click <strong>Add</strong>, complete the
+   browser prompt → credential appears in the list.</li>
+<li>Log out, reload the login page, click <strong>Sign in with security key</strong>
+   after typing your username → browser prompt → logged in.</li>
+<li>PATCH an organization's <code>webauthn_required</code> to <code>admins</code>. Log in as
+   an admin without credentials → server flips <code>mfa_pending</code>, frontend
+   redirects to <code>/auth/mfa</code> → can't proceed without enrollment.</li>
+<li>Configure Settings → Generic OIDC with a Keycloak realm; the login
+   page now shows <strong>Sign in with OIDC</strong> which redirects to
+   <code>/sso/login/oidc/</code>.</li>
+<li>Negative path: tamper with <code>sign_count</code> in the DB to be lower than
+   what the authenticator presents → assertion rejected with
+   <code>Replay detected.</code></li>
+</ol>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>

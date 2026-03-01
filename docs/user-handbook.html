@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Handbook — Forge Platform Docs</title>
+  <meta name="description" content="User Handbook documentation for the Forge infrastructure automation platform.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/docs/user-handbook.html">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#6c5ce7"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="./" style="color: var(--primary-light);">Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Getting Started</h4>
+    <a href="architecture.html">Architecture Overview</a>
+    <a href="deployment.html">Docker Deployment</a>
+    <a href="configuration.html">Configuration Reference</a>
+    <a href="contributing.html">Contributing Guide</a>
+    <h4>Core</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <h4>Features</h4>
+    <a href="dynamic-surveys.html">Dynamic Surveys</a>
+    <a href="audit-trail.html">Audit Trail</a>
+    <a href="event-driven.html">Event-Driven Automation</a>
+    <a href="drift-detection.html">Drift Detection</a>
+    <a href="self-service.html">Self-Service Portal</a>
+    <a href="oidc-webauthn.html">OIDC + WebAuthn</a>
+    <a href="policy-as-code.html">Policy-as-Code (OPA)</a>
+    <a href="iac-scanning.html">IaC Scanning</a>
+    <a href="observability.html">Observability</a>
+    <a href="multi-tenancy.html">Multi-Tenancy</a>
+    <a href="recommendations.html">Recommendations</a>
+    <h4>AI Assistant</h4>
+    <a href="assistant-architecture.html">Architecture</a>
+    <a href="assistant-api.html">API Reference</a>
+    <a href="assistant-config.html">Configuration</a>
+    <a href="assistant-deploy.html">Deployment</a>
+    <h4>Operations</h4>
+    <a href="user-handbook.html">User Handbook</a>
+    <a href="admin-handbook.html">Admin Handbook</a>
+    <h4>Release Notes</h4>
+    <a href="release-2026.04.0.html">v2026.04.0</a>
+    <a href="release-2026.03.0.html">v2026.03.0</a>
+  </aside>
+  <main class="docs-content">
+<h1 id="forge-platform-user-handbook">Forge Platform — User Handbook</h1>
+<p>A step-by-step guide for everyday use of the Forge Platform UI. Each section follows the left sidebar of the application. Click any item in the table of contents to jump straight to it.</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<h3 id="views">Views</h3>
+<ul>
+<li><a href="#dashboard">Dashboard</a></li>
+<li><a href="#jobs">Jobs</a></li>
+<li><a href="#schedules">Schedules</a></li>
+<li><a href="#activity">Activity</a></li>
+<li><a href="#audit-log">Audit Log</a></li>
+<li><a href="#analytics">Analytics</a></li>
+</ul>
+<h3 id="automation">Automation</h3>
+<ul>
+<li><a href="#event-rules">Event Rules</a></li>
+<li><a href="#event-logs">Event Logs</a></li>
+<li><a href="#outbound-webhooks">Outbound Webhooks</a></li>
+</ul>
+<h3 id="self-service">Self-Service</h3>
+<ul>
+<li><a href="#service-portal">Service Portal</a></li>
+<li><a href="#my-requests">My Requests</a></li>
+<li><a href="#approvals">Approvals</a></li>
+<li><a href="#catalog-admin">Catalog Admin</a></li>
+</ul>
+<h3 id="tenancy">Tenancy</h3>
+<ul>
+<li><a href="#tenants">Tenants</a></li>
+<li><a href="#quota-events">Quota Events</a></li>
+</ul>
+<h3 id="compliance">Compliance</h3>
+<ul>
+<li><a href="#drift-detections">Drift Detections</a></li>
+<li><a href="#drift-alerts">Drift Alerts</a></li>
+<li><a href="#alert-rules">Alert Rules</a></li>
+<li><a href="#fact-snapshots">Fact Snapshots</a></li>
+<li><a href="#policies">Policies</a></li>
+<li><a href="#policy-decisions">Policy Decisions</a></li>
+<li><a href="#scanners">Scanners</a></li>
+<li><a href="#scan-results">Scan Results</a></li>
+<li><a href="#observability">Observability</a></li>
+</ul>
+<h3 id="resources">Resources</h3>
+<ul>
+<li><a href="#templates">Templates</a></li>
+<li><a href="#inventories">Inventories</a></li>
+<li><a href="#hosts">Hosts</a></li>
+<li><a href="#projects">Projects</a></li>
+<li><a href="#credentials">Credentials</a></li>
+</ul>
+<h3 id="access">Access</h3>
+<ul>
+<li><a href="#organizations">Organizations</a></li>
+<li><a href="#users">Users</a></li>
+<li><a href="#teams">Teams</a></li>
+</ul>
+<h3 id="admin">Admin</h3>
+<ul>
+<li><a href="#instances">Instances</a></li>
+<li><a href="#instance-groups">Instance Groups</a></li>
+<li><a href="#execution-environments">Execution Environments</a></li>
+<li><a href="#notifications">Notifications</a></li>
+<li><a href="#topology">Topology</a></li>
+<li><a href="#settings">Settings</a></li>
+</ul>
+<hr />
+<h1 id="views_1">VIEWS</h1>
+<h2 id="dashboard">Dashboard</h2>
+<p><img alt="Dashboard" src="img/handbook/dashboard.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — confirms you are on the Dashboard.</li>
+<li><strong>Getting Started banner</strong> — links to the wizard that walks you through the first install (org, project, inventory, credential, template).</li>
+</ol>
+<p>The Dashboard is the landing page after login. It shows the overall health of the platform: recent jobs, success/failure rates, active hosts, and quick links.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Log in to Forge.</li>
+<li>You will land on the Dashboard automatically. If not, click <strong>Dashboard</strong> in the left sidebar.</li>
+<li>Read the four top tiles: <em>Total Hosts</em>, <em>Total Jobs</em>, <em>Active Schedules</em>, <em>Recent Failures</em>.</li>
+<li>Use the time-range selector (top-right) to switch between <strong>Last 24h</strong>, <strong>Last 7d</strong>, <strong>Last 30d</strong>.</li>
+<li>Click any tile to drill into the matching list view.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Open Dashboard → set range to <strong>Last 7d</strong> → click the <em>Recent Failures</em> tile to see all failed jobs of the past week.</p>
+</blockquote>
+<hr />
+<h2 id="jobs">Jobs</h2>
+<p><img alt="Jobs" src="img/handbook/jobs.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Search box</strong> — filter the jobs list by name or id, e.g. type <code>Deploy</code> to find every run of the Deploy Webapp template.</li>
+<li><strong>Refresh</strong> — re-fetch the list (auto-refresh runs on a timer too).</li>
+</ol>
+<p>Jobs are individual runs of a Job Template. Use this view to launch, monitor, and inspect playbook executions.</p>
+<p><strong>Step by step — launch a job</strong></p>
+<ol>
+<li>Click <strong>Jobs</strong> in the sidebar.</li>
+<li>Click the <strong>Launch</strong> button (top-right).</li>
+<li>Pick a <strong>Job Template</strong> from the dropdown.</li>
+<li>Fill in any required survey variables.</li>
+<li>Click <strong>Launch</strong>.</li>
+<li>The job opens in the live output view — watch the play-by-play log.</li>
+</ol>
+<p><strong>Example survey input</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="nt">target_env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">staging</span>
+<span class="nt">package_version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.4.2</span>
+<span class="nt">restart_service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+
+<p><strong>Step by step — inspect a finished job</strong></p>
+<ol>
+<li>Click any row in the Jobs list.</li>
+<li>Read the <strong>Details</strong> tab (status, duration, executed by).</li>
+<li>Open the <strong>Output</strong> tab for the full Ansible log.</li>
+<li>Open <strong>Hosts</strong> to see per-host success/failure.</li>
+</ol>
+<hr />
+<h2 id="schedules">Schedules</h2>
+<p><img alt="Schedules" src="img/handbook/schedules.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Create Schedule</strong> — opens the form below.</li>
+</ol>
+<p>Schedules trigger Job Templates automatically on a cron-like cadence.</p>
+<p><strong>Create Schedule</strong></p>
+<p><img alt="Create Schedule" src="img/handbook/schedules_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — short, descriptive id, e.g. <code>nightly-db-backup</code>.</li>
+<li><strong>Template</strong> — the Job Template to launch on the schedule, e.g. <code>Backup PostgreSQL</code>.</li>
+<li><strong>Frequency</strong> — None / Minute / Hour / Day / Week / Month — pick the cadence.</li>
+<li><strong>Start Date/Time</strong> — when the first run should fire, e.g. <code>2026-04-12 02:00</code>.</li>
+<li><strong>Create Schedule</strong> — submits the form.</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Schedules</strong> → <strong>Add</strong>.</li>
+<li>Fill in:</li>
+<li><strong>Name</strong> — short, descriptive</li>
+<li><strong>Job Template</strong> — what to run</li>
+<li><strong>Start Date / Time</strong></li>
+<li><strong>Frequency</strong> — None / Minute / Hour / Day / Week / Month</li>
+<li><strong>Repeat Frequency</strong> — every <em>N</em> of the chosen unit</li>
+<li>Click <strong>Save</strong>.</li>
+<li>Toggle the <strong>Enabled</strong> switch to activate.</li>
+</ol>
+<p><strong>Example</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td><code>nightly-db-backup</code></td>
+</tr>
+<tr>
+<td>Job Template</td>
+<td><code>Backup PostgreSQL</code></td>
+</tr>
+<tr>
+<td>Start Date</td>
+<td><code>2026-04-12 02:00</code></td>
+</tr>
+<tr>
+<td>Frequency</td>
+<td>Day</td>
+</tr>
+<tr>
+<td>Repeat</td>
+<td>every <code>1</code> day</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="activity">Activity</h2>
+<p><img alt="Activity" src="img/handbook/activity.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — Activity is read-only; use the column headers and filters to narrow the feed.</li>
+</ol>
+<p>A chronological feed of platform actions: who did what and when.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Activity</strong>.</li>
+<li>Filter by <strong>User</strong>, <strong>Object Type</strong>, or <strong>Date Range</strong>.</li>
+<li>Click any row to open the actor and the affected object side by side.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Filter: User = <code>alice</code>, Date Range = <em>Today</em> → see every change Alice made today.</p>
+</blockquote>
+<hr />
+<h2 id="audit-log">Audit Log</h2>
+<p><img alt="Audit Log" src="img/handbook/audit_log.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — use the column header filters to narrow by event type, severity, actor, or date range.</li>
+</ol>
+<p>Tamper-evident security log used for compliance reporting (SOC 2, ISO 27001).</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Audit Log</strong>.</li>
+<li>Use filters: <strong>Event Type</strong> (<code>login</code>, <code>permission_change</code>, <code>credential_access</code>, …), <strong>Severity</strong>, <strong>Actor</strong>.</li>
+<li>Click <strong>Export → CSV</strong> to download for audit.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Filter: Event Type = <code>credential_access</code>, Date Range = <em>Last 30d</em> → export CSV → attach to audit ticket.</p>
+</blockquote>
+<hr />
+<h2 id="analytics">Analytics</h2>
+<p><img alt="Analytics" src="img/handbook/analytics.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — switch tabs across the top to see Overview / Job Trends / Host Health / Top Failures.</li>
+</ol>
+<p>Visual KPIs across the whole platform: job throughput, MTTR, top failing templates.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Analytics</strong>.</li>
+<li>Pick a tab: <strong>Overview</strong>, <strong>Job Trends</strong>, <strong>Host Health</strong>, <strong>Top Failures</strong>.</li>
+<li>Hover any chart point for the exact number.</li>
+<li>Click <strong>Download Report → PDF</strong> for a printable snapshot.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Open <em>Top Failures</em> → identify the template with most failures → click it → land on its Jobs list filtered to failed runs.</p>
+</blockquote>
+<hr />
+<h1 id="automation_1">AUTOMATION</h1>
+<h2 id="event-rules">Event Rules</h2>
+<p><img alt="Event Rules" src="img/handbook/event_rules.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Create Event Rule</strong> — opens the form below.</li>
+</ol>
+<p>Event Rules listen for incoming events (webhooks, alerts, message bus) and launch a Job Template when conditions match.</p>
+<p><strong>Create Event Rule</strong></p>
+<p><img alt="Create Event Rule" src="img/handbook/event_rules_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — short id, e.g. <code>restart-on-prometheus-crit</code>.</li>
+<li><strong>Source Type</strong> — webhook / kafka / alertmanager / etc.</li>
+<li><strong>Webhook Path</strong> — URL suffix the source will hit, e.g. <code>/prom-crit</code>.</li>
+<li><strong>Add Condition</strong> — add JSONPath / regex match rules.</li>
+<li><strong>Add Action</strong> — what to launch when conditions match (Job Template, Workflow).</li>
+<li><strong>Create Event Rule</strong> — submits the form.</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Event Rules</strong> → <strong>Create Rule</strong>.</li>
+<li>Fill in:</li>
+<li><strong>Name</strong></li>
+<li><strong>Source</strong> (webhook, kafka, prometheus alertmanager, …)</li>
+<li><strong>Match condition</strong> (JSONPath / regex)</li>
+<li><strong>Action</strong> — Job Template to launch</li>
+<li><strong>Variables to forward</strong></li>
+<li>Click <strong>Save</strong> → toggle <strong>Enabled</strong>.</li>
+</ol>
+<p><strong>Example</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">restart-on-prometheus-crit</span>
+<span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">alertmanager</span>
+<span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;$.alerts[?(@.labels.severity==&#39;critical&#39;)]&quot;</span>
+<span class="nt">action_template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Restart Failed Service</span>
+<span class="nt">forward_vars</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">alert.labels.instance</span><span class="nv"> </span><span class="s">}}&quot;</span>
+<span class="w">  </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">alert.labels.service</span><span class="nv"> </span><span class="s">}}&quot;</span>
+</code></pre></div>
+
+<hr />
+<h2 id="event-logs">Event Logs</h2>
+<p><img alt="Event Logs" src="img/handbook/event_logs.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — read-only feed of received events; click a row to see the raw payload.</li>
+</ol>
+<p>Read-only history of every event the platform received and what rule (if any) consumed it.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Event Logs</strong>.</li>
+<li>Filter by <strong>Source</strong>, <strong>Status</strong> (<code>matched</code>, <code>unmatched</code>, <code>error</code>), <strong>Date</strong>.</li>
+<li>Click a row to see the raw event payload and which rule fired.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Filter: Status = <code>unmatched</code> → find events nothing reacted to → write a new Event Rule for them.</p>
+</blockquote>
+<hr />
+<h2 id="outbound-webhooks">Outbound Webhooks</h2>
+<p><img alt="Outbound Webhooks" src="img/handbook/outbound_webhooks.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Create Outbound Webhook</strong> — opens the form below.</li>
+</ol>
+<p>Send platform events to external systems (Slack, PagerDuty, ServiceNow).</p>
+<p><strong>Create Outbound Webhook</strong></p>
+<p><img alt="Create Outbound Webhook" src="img/handbook/outbound_webhooks_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — short id, e.g. <code>slack-failed-jobs</code>.</li>
+<li><strong>Target URL</strong> — full https URL of the receiving endpoint, e.g. <code>https://hooks.slack.com/services/T0/B0/XYZ</code>.</li>
+<li><strong>Trigger toggles</strong> (Job Started / Succeeded / Failed / etc.) — pick which events fire the webhook.</li>
+<li><strong>Create Outbound Webhook</strong> — submits the form.</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Outbound Webhooks</strong> → <strong>Add</strong>.</li>
+<li>Fill in:</li>
+<li><strong>Name</strong></li>
+<li><strong>Target URL</strong></li>
+<li><strong>HTTP Method</strong> (POST / PUT)</li>
+<li><strong>Headers</strong> (auth tokens)</li>
+<li><strong>Trigger Events</strong> (job-failed, job-success, drift-detected, …)</li>
+<li><strong>Payload Template</strong> (Jinja2)</li>
+<li>Click <strong>Test</strong> → <strong>Save</strong>.</li>
+</ol>
+<p><strong>Example</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">slack-failed-jobs</span>
+<span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://hooks.slack.com/services/T0/B0/XYZ</span>
+<span class="nt">method</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">POST</span>
+<span class="nt">headers</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">Content-Type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">application/json</span>
+<span class="nt">trigger</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">job_failed</span>
+<span class="nt">payload</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">  </span><span class="no">{&quot;text&quot;: &quot;:x: Job *{{ job.name }}* failed on {{ job.host }}&quot;}</span>
+</code></pre></div>
+
+<hr />
+<h1 id="self-service_1">SELF-SERVICE</h1>
+<h2 id="service-portal">Service Portal</h2>
+<p><img alt="Service Portal" src="img/handbook/service_portal.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — end-user catalog. Browse tiles or use search.</li>
+</ol>
+<p>End-user catalog: lets non-admins request pre-approved automations without touching templates directly.</p>
+<p><strong>Step by step (as end user)</strong></p>
+<ol>
+<li>Click <strong>Service Portal</strong>.</li>
+<li>Browse the catalog tiles or use the search bar.</li>
+<li>Click a tile (e.g., <em>New Dev VM</em>).</li>
+<li>Fill in the request form.</li>
+<li>Click <strong>Submit</strong>.</li>
+</ol>
+<p><strong>Example form</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>VM name</td>
+<td><code>dev-alice-01</code></td>
+</tr>
+<tr>
+<td>OS</td>
+<td>Ubuntu 24.04</td>
+</tr>
+<tr>
+<td>Size</td>
+<td>small (2 vCPU / 4 GB)</td>
+</tr>
+<tr>
+<td>Owner email</td>
+<td><code>alice@example.com</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="my-requests">My Requests</h2>
+<p><img alt="My Requests" src="img/handbook/my_requests.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — your submitted requests with their current status.</li>
+</ol>
+<p>Tracks the status of requests you submitted from the Service Portal.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>My Requests</strong>.</li>
+<li>Read the status column: <code>pending</code>, <code>approved</code>, <code>rejected</code>, <code>running</code>, <code>completed</code>, <code>failed</code>.</li>
+<li>Click any row → <strong>Output</strong> tab to read the job log.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Submit a <em>New Dev VM</em> request → open <strong>My Requests</strong> → wait for <code>approved</code> → wait for <code>completed</code> → copy the VM IP from output.</p>
+</blockquote>
+<hr />
+<h2 id="approvals">Approvals</h2>
+<p><img alt="Approvals" src="img/handbook/approvals.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — pending requests waiting for an approver. Click a row to read details and Approve / Reject.</li>
+</ol>
+<p>Queue of items waiting for an approver. Items appear here when a Service Portal entry is configured to require approval.</p>
+<p><strong>Step by step (as approver)</strong></p>
+<ol>
+<li>Click <strong>Approvals</strong>.</li>
+<li>Click a pending item.</li>
+<li>Read the request details and the requester comment.</li>
+<li>Click <strong>Approve</strong> or <strong>Reject</strong>. If rejecting, provide a reason.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Open the queue → click <code>Provision Production DB</code> → review parameters → click <strong>Approve</strong> → job auto-launches.</p>
+</blockquote>
+<hr />
+<h2 id="catalog-admin">Catalog Admin</h2>
+<p><img alt="Catalog Admin" src="img/handbook/catalog_admin.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Add Item</strong> — opens the form below.</li>
+</ol>
+<p>Where admins create and manage Service Portal entries.</p>
+<p><strong>Create Catalog Item</strong></p>
+<p><img alt="Create Catalog Item" src="img/handbook/catalog_admin_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — what end users will see in the Service Portal, e.g. <code>New Dev VM</code>.</li>
+<li><strong>Category</strong> — groups items in the portal, e.g. <code>Compute</code>.</li>
+<li><strong>Underlying template</strong> — the Job Template that will run when a request is approved.</li>
+<li><strong>Requires approval</strong> — toggle on to route requests through Approvals; off to auto-launch.</li>
+<li><strong>Save</strong> — publishes the catalog item.</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Catalog Admin</strong> → <strong>Add Item</strong>.</li>
+<li>Fill in:</li>
+<li><strong>Title</strong></li>
+<li><strong>Description</strong></li>
+<li><strong>Category</strong></li>
+<li><strong>Underlying Job Template</strong></li>
+<li><strong>Survey form</strong></li>
+<li><strong>Approval required?</strong> (yes / no — pick approver group)</li>
+<li>Click <strong>Publish</strong>.</li>
+</ol>
+<p><strong>Example</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Title</td>
+<td>New Dev VM</td>
+</tr>
+<tr>
+<td>Category</td>
+<td>Compute</td>
+</tr>
+<tr>
+<td>Template</td>
+<td><code>Provision VM</code></td>
+</tr>
+<tr>
+<td>Approval required</td>
+<td>No</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="tenancy_1">TENANCY</h1>
+<h2 id="tenants">Tenants</h2>
+<p><img alt="Tenants" src="img/handbook/tenants.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Create Tenant</strong> — opens the form below.</li>
+</ol>
+<p>A tenant is an isolated workspace (org-of-orgs) with its own data, quotas, and members. Used for multi-tenant deployments.</p>
+<p><strong>Create Tenant</strong></p>
+<p><img alt="Create Tenant" src="img/handbook/tenants_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — slug-friendly id, e.g. <code>acme-corp</code>.</li>
+<li><strong>Admin username</strong> — bootstrap admin login for the tenant, e.g. <code>acme-admin</code>.</li>
+<li><strong>Admin password</strong> — strong password for the bootstrap admin.</li>
+<li><strong>Max concurrent jobs</strong> — quota cap for parallel jobs, e.g. <code>20</code>.</li>
+<li><strong>Save</strong> — provisions the tenant atomically (org + admin + team + quotas).</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Tenants</strong> → <strong>Create Tenant</strong>.</li>
+<li>Fill in:</li>
+<li><strong>Name</strong> — slug-friendly</li>
+<li><strong>Display Name</strong></li>
+<li><strong>Quota</strong> — max jobs/day, max hosts, max storage</li>
+<li><strong>Owner user</strong></li>
+<li>Click <strong>Create</strong>.</li>
+</ol>
+<p><strong>Example</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme-corp</span>
+<span class="nt">display_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ACME Corp</span>
+<span class="nt">quota</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">jobs_per_day</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">500</span>
+<span class="w">  </span><span class="nt">hosts</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">200</span>
+<span class="w">  </span><span class="nt">storage_gb</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
+<span class="nt">owner</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">acme-admin@example.com</span>
+</code></pre></div>
+
+<hr />
+<h2 id="quota-events">Quota Events</h2>
+<p><img alt="Quota Events" src="img/handbook/quota_events.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — read-only audit feed of quota changes and quota-exceeded events.</li>
+</ol>
+<p>Audit feed of quota changes and quota-exceeded events per tenant.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Quota Events</strong>.</li>
+<li>Filter by <strong>Tenant</strong> and <strong>Event Type</strong> (<code>exceeded</code>, <code>raised</code>, <code>lowered</code>).</li>
+<li>Click a row to see the resource that hit the limit.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Filter: Tenant = <code>acme-corp</code>, Event = <code>exceeded</code> → see when ACME hit their daily job ceiling → contact them or raise the quota.</p>
+</blockquote>
+<hr />
+<h1 id="compliance_1">COMPLIANCE</h1>
+<h2 id="drift-detections">Drift Detections</h2>
+<p><img alt="Drift Detections" src="img/handbook/drift_detections.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — list of drift detection runs. Click any row for the per-host findings.</li>
+</ol>
+<p>Compares the current state of a host against a known-good fact baseline.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Drift Detections</strong> → <strong>Run Detection</strong>.</li>
+<li>Pick:</li>
+<li><strong>Inventory</strong></li>
+<li><strong>Baseline snapshot</strong></li>
+<li><strong>Hosts</strong> (or <em>All</em>)</li>
+<li>Click <strong>Run</strong>.</li>
+<li>Open the result row when finished.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Inventory: <code>prod-web</code> · Baseline: <code>baseline-2026-04-01</code> · Hosts: All → Run.</p>
+</blockquote>
+<hr />
+<h2 id="drift-alerts">Drift Alerts</h2>
+<p><img alt="Drift Alerts" src="img/handbook/drift_alerts.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — open alerts opened by drift detections. Use status filter to narrow by <code>open</code> / <code>acked</code> / <code>resolved</code>.</li>
+</ol>
+<p>Alerts opened automatically when a drift detection finds a mismatch.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Drift Alerts</strong>.</li>
+<li>Filter by <strong>Severity</strong> (<code>info</code>, <code>warn</code>, <code>crit</code>) or <strong>Status</strong> (<code>open</code>, <code>acked</code>, <code>resolved</code>).</li>
+<li>Open an alert → click <strong>Acknowledge</strong> or <strong>Resolve</strong>.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Filter: Severity = <code>crit</code>, Status = <code>open</code> → ack each one → assign to oncall.</p>
+</blockquote>
+<hr />
+<h2 id="alert-rules">Alert Rules</h2>
+<p><img alt="Alert Rules" src="img/handbook/alert_rules.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Create Alert Rule</strong> — opens the form below.</li>
+</ol>
+<p>Rules that decide which drift findings become alerts and at which severity.</p>
+<p><strong>Create Alert Rule</strong></p>
+<p><img alt="Create Alert Rule" src="img/handbook/alert_rules_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — short id, e.g. <code>ssh-port-must-be-22</code>.</li>
+<li><strong>Host Filter</strong> — fnmatch pattern (e.g. <code>prod-*</code>) to scope the rule.</li>
+<li><strong>Minimum Severity</strong> — info / warn / crit — minimum severity that opens an alert.</li>
+<li><strong>Create Alert Rule</strong> — submits the form.</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Alert Rules</strong> → <strong>Add Rule</strong>.</li>
+<li>Fill in:</li>
+<li><strong>Name</strong></li>
+<li><strong>Match</strong> (fact key + expected value or regex)</li>
+<li><strong>Severity</strong></li>
+<li><strong>Notify</strong> (which Notification target)</li>
+<li><strong>Save</strong>.</li>
+</ol>
+<p><strong>Example</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ssh-port-must-be-22</span>
+<span class="nt">match</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">fact</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ansible_facts.ssh.port</span>
+<span class="w">  </span><span class="nt">not_equal</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">22</span>
+<span class="nt">severity</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">crit</span>
+<span class="nt">notify</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">slack-secops</span>
+</code></pre></div>
+
+<hr />
+<h2 id="fact-snapshots">Fact Snapshots</h2>
+<p><img alt="Fact Snapshots" src="img/handbook/fact_snapshots.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — list of point-in-time fact captures used as drift baselines.</li>
+</ol>
+<p>A point-in-time capture of host facts. Used as drift baselines.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Fact Snapshots</strong> → <strong>Create Snapshot</strong>.</li>
+<li>Pick <strong>Inventory</strong> and <strong>Hosts</strong>.</li>
+<li>Add a <strong>Label</strong> (the snapshot’s name).</li>
+<li>Click <strong>Capture</strong>.</li>
+</ol>
+<p><strong>Example</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Inventory</td>
+<td><code>prod-web</code></td>
+</tr>
+<tr>
+<td>Hosts</td>
+<td>All</td>
+</tr>
+<tr>
+<td>Label</td>
+<td><code>baseline-2026-04-01</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="policies">Policies</h2>
+<p><img alt="Policies" src="img/handbook/policies.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Create Policy</strong> — opens the form below.</li>
+</ol>
+<p>Policy-as-Code rules (OPA / Rego) that gate job execution and approvals.</p>
+<p><strong>Create Policy</strong></p>
+<p><img alt="Create Policy" src="img/handbook/policies_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — short id, e.g. <code>dba-only-drop-db</code>.</li>
+<li><strong>Enforcement</strong> — <code>enforce</code> (block on deny) or <code>warn</code> (record only).</li>
+<li><strong>Rego module</strong> — the OPA Rego source that returns deny / allow.</li>
+<li><strong>Save</strong> — validates and stores the policy.</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Policies</strong> → <strong>Create Policy</strong>.</li>
+<li>Fill in:</li>
+<li><strong>Name</strong></li>
+<li><strong>Scope</strong> (<code>pre-job</code>, <code>pre-approval</code>, <code>pre-deploy</code>)</li>
+<li><strong>Rego source</strong></li>
+<li>Click <strong>Validate</strong> → <strong>Save</strong> → <strong>Enable</strong>.</li>
+</ol>
+<p><strong>Example Rego</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="k">package</span><span class="w"> </span><span class="n">forge</span><span class="p">.</span><span class="n">prejob</span>
+
+<span class="n">deny</span><span class="p">[</span><span class="n">msg</span><span class="p">]</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nb">input</span><span class="p">.</span><span class="n">template</span><span class="p">.</span><span class="n">name</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s2">&quot;Drop Database&quot;</span>
+<span class="w">  </span><span class="nb">input</span><span class="p">.</span><span class="n">user</span><span class="p">.</span><span class="n">team</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="s2">&quot;dba&quot;</span>
+<span class="w">  </span><span class="n">msg</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="s2">&quot;only DBAs can drop databases&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<hr />
+<h2 id="policy-decisions">Policy Decisions</h2>
+<p><img alt="Policy Decisions" src="img/handbook/policy_decisions.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — read-only history of every OPA evaluation. Filter by Verdict / User / Policy.</li>
+</ol>
+<p>History of every policy evaluation: who triggered it, what the input was, and the verdict.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Policy Decisions</strong>.</li>
+<li>Filter by <strong>Policy</strong>, <strong>Verdict</strong> (<code>allow</code> / <code>deny</code>), <strong>User</strong>.</li>
+<li>Click a row to see the full input JSON and the rule that fired.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Filter: Verdict = <code>deny</code>, Last 24h → see who got blocked yesterday and why.</p>
+</blockquote>
+<hr />
+<h2 id="scanners">Scanners</h2>
+<p><img alt="Scanners" src="img/handbook/scanners.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Create Scanner</strong> — opens the form below.</li>
+</ol>
+<p>Configured IaC / image / dependency scanners (Trivy, Checkov, …).</p>
+<p><strong>Create Scanner</strong></p>
+<p><img alt="Create Scanner" src="img/handbook/scanners_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — short id, e.g. <code>trivy-prod</code>.</li>
+<li><strong>Tool</strong> — Trivy / Checkov / ansible-lint / pip-audit.</li>
+<li><strong>Severity threshold</strong> — minimum severity that fails a job, e.g. <code>high</code>.</li>
+<li><strong>Save</strong> — registers the scanner.</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Scanners</strong> → <strong>Add Scanner</strong>.</li>
+<li>Fill in:</li>
+<li><strong>Type</strong> (Trivy / Checkov / Custom)</li>
+<li><strong>Target</strong> (Project, Inventory, or Image registry)</li>
+<li><strong>Schedule</strong> (cron)</li>
+<li><strong>Save</strong> → click <strong>Run Now</strong> to test.</li>
+</ol>
+<p><strong>Example</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Type</td>
+<td>Trivy</td>
+</tr>
+<tr>
+<td>Target</td>
+<td>Project: <code>infra-terraform</code></td>
+</tr>
+<tr>
+<td>Schedule</td>
+<td><code>0 3 * * *</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="scan-results">Scan Results</h2>
+<p><img alt="Scan Results" src="img/handbook/scan_results.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — read-only findings from configured scanners. Filter by severity / scanner / date.</li>
+</ol>
+<p>Findings from the configured scanners.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Scan Results</strong>.</li>
+<li>Filter by <strong>Severity</strong> (<code>crit</code>, <code>high</code>, <code>med</code>, <code>low</code>), <strong>Scanner</strong>, <strong>Date</strong>.</li>
+<li>Click a finding for the file path, line number, and remediation hint.</li>
+<li>Click <strong>Mark as Fixed</strong> after remediating.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Filter: Severity = <code>crit</code>, Scanner = <code>trivy</code> → triage every critical CVE.</p>
+</blockquote>
+<hr />
+<h2 id="observability">Observability</h2>
+<p><img alt="Observability" src="img/handbook/observability.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — live OpenTelemetry view (traces, metrics, logs). Pick a tab and search.</li>
+</ol>
+<p>Live OpenTelemetry view of the platform itself: traces, metrics, logs.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Observability</strong>.</li>
+<li>Pick a tab: <strong>Traces</strong>, <strong>Metrics</strong>, <strong>Logs</strong>.</li>
+<li>Use the search bar (Trace ID / Service / Metric name).</li>
+<li>Click <strong>Open in Grafana</strong> for the deep view.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Tab: Traces → search <code>service=forge-web</code> → click the slowest span → open in Grafana.</p>
+</blockquote>
+<hr />
+<h1 id="resources_1">RESOURCES</h1>
+<h2 id="templates">Templates</h2>
+<p><img alt="Templates" src="img/handbook/templates.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Search box</strong> — filter templates by name, e.g. type <code>Deploy</code>.</li>
+<li><strong>+ Job Template</strong> — opens the create form below.</li>
+</ol>
+<p>Job Templates wrap a project + playbook + inventory + credentials + survey into a launchable unit.</p>
+<p><strong>Create Job Template</strong></p>
+<p><img alt="Create Job Template" src="img/handbook/templates_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — short, descriptive id, e.g. <code>Deploy Webapp</code>.</li>
+<li><strong>Inventory</strong> — pick the target hosts, e.g. <code>Production Web</code>.</li>
+<li><strong>Project</strong> — the Git project that contains the playbook, e.g. <code>Demo Project</code>.</li>
+<li><strong>Playbook</strong> — the YAML file inside the project to run, e.g. <code>deploy.yml</code>.</li>
+<li><strong>Limit</strong> — host pattern to scope the run, e.g. <code>webservers</code> or <code>webservers:!web03</code>.</li>
+<li><strong>Create Template</strong> — submits the form.</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Templates</strong> → <strong>Add Job Template</strong>.</li>
+<li>Fill in:</li>
+<li><strong>Name</strong></li>
+<li><strong>Job Type</strong> (<code>run</code> / <code>check</code>)</li>
+<li><strong>Inventory</strong></li>
+<li><strong>Project</strong></li>
+<li><strong>Playbook</strong></li>
+<li><strong>Credentials</strong></li>
+<li><strong>Limit</strong> (host pattern, optional)</li>
+<li><strong>Variables</strong> (YAML / JSON)</li>
+<li><strong>Save</strong> → click <strong>Launch</strong> to test.</li>
+</ol>
+<p><strong>Example</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">deploy-webapp</span>
+<span class="nt">job_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">run</span>
+<span class="nt">inventory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prod-web</span>
+<span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webapp-iac</span>
+<span class="nt">playbook</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">deploy.yml</span>
+<span class="nt">credentials</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ssh-prod</span>
+<span class="nt">limit</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">webservers</span>
+<span class="nt">variables</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">app_version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2.3.1</span>
+</code></pre></div>
+
+<hr />
+<h2 id="inventories">Inventories</h2>
+<p><img alt="Inventories" src="img/handbook/inventories.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Search box</strong> — filter the inventories list.</li>
+<li><strong>Create Inventory</strong> — opens the form below.</li>
+</ol>
+<p>Logical group of hosts. May be static, sourced from a file, or synced from a cloud (AWS / Azure / GCP).</p>
+<p><strong>Create Inventory</strong></p>
+<p><img alt="Create Inventory" src="img/handbook/inventories_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — short id, e.g. <code>Production Web</code>.</li>
+<li><strong>Description</strong> — free-text purpose, e.g. <code>Web tier — production hosts</code>.</li>
+<li><strong>Organization</strong> — which org owns this inventory, e.g. <code>Default</code>.</li>
+<li><strong>Inventory Type</strong> — <code>Standard</code> for a static list, <code>Smart</code> for a dynamic host filter.</li>
+<li><strong>Create Inventory</strong> — submits the form.</li>
+</ol>
+<p><strong>Step by step — create static inventory</strong></p>
+<ol>
+<li>Click <strong>Inventories</strong> → <strong>Add → Inventory</strong>.</li>
+<li>Fill in <strong>Name</strong>, <strong>Organization</strong>, <strong>Description</strong>.</li>
+<li>Click <strong>Save</strong>.</li>
+<li>Open the <strong>Hosts</strong> tab → <strong>Add</strong> to attach hosts.</li>
+<li>Open the <strong>Groups</strong> tab → <strong>Add</strong> to organize hosts.</li>
+</ol>
+<p><strong>Example</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td><code>prod-web</code></td>
+</tr>
+<tr>
+<td>Organization</td>
+<td>Platform</td>
+</tr>
+<tr>
+<td>Hosts</td>
+<td><code>web01</code>, <code>web02</code>, <code>web03</code></td>
+</tr>
+<tr>
+<td>Group</td>
+<td><code>webservers</code> (contains all three)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="hosts">Hosts</h2>
+<p><img alt="Hosts" src="img/handbook/hosts.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — flat list of all hosts across all inventories. Click a host to see its facts and group memberships.</li>
+</ol>
+<p>Individual machines (or endpoints) that belong to one or more inventories.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Hosts</strong> → <strong>Add</strong>.</li>
+<li>Fill in:</li>
+<li><strong>Hostname / IP</strong></li>
+<li><strong>Inventory</strong></li>
+<li><strong>Variables</strong> (YAML — host-specific overrides)</li>
+<li><strong>Save</strong>.</li>
+</ol>
+<p><strong>Example</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">web01.example.com</span>
+<span class="nt">inventory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prod-web</span>
+<span class="nt">variables</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">ansible_user</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">deploy</span>
+<span class="w">  </span><span class="nt">http_port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8080</span>
+</code></pre></div>
+
+<hr />
+<h2 id="projects">Projects</h2>
+<p><img alt="Projects" src="img/handbook/projects.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Search box</strong> — filter projects by name.</li>
+<li><strong>Create Project</strong> — opens the form below.</li>
+</ol>
+<p>A Project is a Git checkout containing playbooks, roles, and collections.</p>
+<p><strong>Create Project</strong></p>
+<p><img alt="Create Project" src="img/handbook/projects_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — short id, e.g. <code>webapp-iac</code>.</li>
+<li><strong>SCM Type</strong> — <code>git</code> (GitHub / GitLab / Bitbucket / self-hosted).</li>
+<li><strong>SCM URL</strong> — clone URL, e.g. <code>git@github.com:acme/webapp-iac.git</code>.</li>
+<li><strong>SCM Branch</strong> — branch / tag / sha to check out, e.g. <code>main</code>.</li>
+<li><strong>Create Project</strong> — submits the form and triggers the first sync.</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Projects</strong> → <strong>Add</strong>.</li>
+<li>Fill in:</li>
+<li><strong>Name</strong></li>
+<li><strong>Organization</strong></li>
+<li><strong>SCM Type</strong> (<code>git</code>)</li>
+<li><strong>SCM URL</strong></li>
+<li><strong>SCM Branch</strong></li>
+<li><strong>SCM Credential</strong></li>
+<li><strong>Update Options</strong> (clean, delete on update, update on launch)</li>
+<li><strong>Save</strong>. The first sync starts automatically.</li>
+</ol>
+<p><strong>Example</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>webapp-iac</td>
+</tr>
+<tr>
+<td>SCM Type</td>
+<td>git</td>
+</tr>
+<tr>
+<td>URL</td>
+<td><code>git@github.com:acme/webapp-iac.git</code></td>
+</tr>
+<tr>
+<td>Branch</td>
+<td>main</td>
+</tr>
+<tr>
+<td>Credential</td>
+<td><code>github-deploy-key</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="credentials">Credentials</h2>
+<p><img alt="Credentials" src="img/handbook/credentials.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Search box</strong> — filter credentials.</li>
+<li><strong>Create Credential</strong> — opens the form below.</li>
+</ol>
+<p>Encrypted secret store: SSH keys, passwords, cloud tokens, vault keys.</p>
+<p><strong>Create Credential</strong></p>
+<p><img alt="Create Credential" src="img/handbook/credentials_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — short id, e.g. <code>ssh-prod</code>.</li>
+<li><strong>Credential Type</strong> — Machine / SCM / Vault / AWS / Azure / GCP / etc.</li>
+<li><strong>Organization</strong> — which org owns this credential.</li>
+<li><strong>Create Credential</strong> — submits the form (encrypted at rest).</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Credentials</strong> → <strong>Add</strong>.</li>
+<li>Pick a <strong>Credential Type</strong> (Machine, Source Control, Vault, AWS, Azure, GCP, …).</li>
+<li>Fill in the required fields (varies by type).</li>
+<li><strong>Save</strong> — the secret is encrypted at rest.</li>
+</ol>
+<p><strong>Example — SSH key for production</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td><code>ssh-prod</code></td>
+</tr>
+<tr>
+<td>Type</td>
+<td>Machine</td>
+</tr>
+<tr>
+<td>Username</td>
+<td><code>deploy</code></td>
+</tr>
+<tr>
+<td>SSH Private Key</td>
+<td><em>(paste key)</em></td>
+</tr>
+<tr>
+<td>Privilege Escalation</td>
+<td>sudo</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h1 id="access_1">ACCESS</h1>
+<h2 id="organizations">Organizations</h2>
+<p><img alt="Organizations" src="img/handbook/organizations.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Create Organization</strong> — opens the form below.</li>
+</ol>
+<p>Top-level container for users, teams, projects, inventories, templates.</p>
+<p><strong>Create Organization</strong></p>
+<p><img alt="Create Organization" src="img/handbook/organizations_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — short id, e.g. <code>Platform</code>.</li>
+<li><strong>Description</strong> — purpose of the org, e.g. <code>Core platform engineering org</code>.</li>
+<li><strong>Max Hosts</strong> — soft cap for the org, leave 0 for unlimited.</li>
+<li><strong>Create Organization</strong> — submits the form.</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Organizations</strong> → <strong>Add</strong>.</li>
+<li>Fill in <strong>Name</strong> and <strong>Description</strong>.</li>
+<li><strong>Save</strong>.</li>
+<li>Open the org → <strong>Access</strong> tab → add users / teams.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Name: <code>Platform</code> · Description: <code>Core platform engineering org</code>.</p>
+</blockquote>
+<hr />
+<h2 id="users">Users</h2>
+<p><img alt="Users" src="img/handbook/users.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Create User</strong> — opens the form below.</li>
+</ol>
+<p>Local and SSO-mapped users.</p>
+<p><strong>Create User</strong></p>
+<p><img alt="Create User" src="img/handbook/users_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Username</strong> — login id, e.g. <code>alice</code>.</li>
+<li><strong>Email</strong> — contact address, e.g. <code>alice@example.com</code>.</li>
+<li><strong>Password</strong> — strong initial password (user can change later).</li>
+<li><strong>Superuser toggle</strong> — grants full admin rights; leave off for normal users.</li>
+<li><strong>Create User</strong> — submits the form.</li>
+</ol>
+<p><strong>Step by step — create a local user</strong></p>
+<ol>
+<li>Click <strong>Users</strong> → <strong>Add</strong>.</li>
+<li>Fill in <strong>Username</strong>, <strong>Email</strong>, <strong>First / Last name</strong>, <strong>Password</strong>.</li>
+<li>Pick <strong>User Type</strong> (Normal / System Auditor / System Admin).</li>
+<li><strong>Save</strong>.</li>
+<li>Open the user → <strong>Permissions</strong> → grant role on objects.</li>
+</ol>
+<p><strong>Example</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Username</td>
+<td><code>alice</code></td>
+</tr>
+<tr>
+<td>Email</td>
+<td><code>alice@example.com</code></td>
+</tr>
+<tr>
+<td>User Type</td>
+<td>Normal</td>
+</tr>
+<tr>
+<td>Role</td>
+<td><code>Project Admin</code> on <code>webapp-iac</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="teams">Teams</h2>
+<p><img alt="Teams" src="img/handbook/teams.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Create Team</strong> — opens the form below.</li>
+</ol>
+<p>A Team groups users so permissions can be granted in bulk.</p>
+<p><strong>Create Team</strong></p>
+<p><img alt="Create Team" src="img/handbook/teams_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — short id, e.g. <code>webapp-devs</code>.</li>
+<li><strong>Description</strong> — purpose, e.g. <code>Engineers who deploy the webapp</code>.</li>
+<li><strong>Organization</strong> — parent org for the team.</li>
+<li><strong>Create Team</strong> — submits the form.</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Teams</strong> → <strong>Add</strong>.</li>
+<li>Fill in <strong>Name</strong>, <strong>Organization</strong>, <strong>Description</strong>.</li>
+<li><strong>Save</strong>.</li>
+<li>Open the team → <strong>Access</strong> tab → add members.</li>
+<li>Grant the team a role on a project / template / inventory.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Team: <code>webapp-devs</code> · Org: <code>Platform</code> · Members: <code>alice</code>, <code>bob</code> · Role: <code>Execute</code> on template <code>deploy-webapp</code>.</p>
+</blockquote>
+<hr />
+<h1 id="admin_1">ADMIN</h1>
+<h2 id="instances">Instances</h2>
+<p><img alt="Instances" src="img/handbook/instances.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — list of cluster nodes. Click any row to enable / disable a node or adjust its capacity.</li>
+</ol>
+<p>Physical or virtual nodes that run jobs (control plane + execution plane).</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Instances</strong>.</li>
+<li>Read the table: <strong>Hostname</strong>, <strong>Node Type</strong>, <strong>Capacity</strong>, <strong>Used</strong>, <strong>Status</strong>.</li>
+<li>Click an instance → <strong>Disable</strong> (drain) or <strong>Enable</strong>.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Drain <code>worker-03</code> before reboot → mark Disabled → wait for jobs to drain → reboot → mark Enabled.</p>
+</blockquote>
+<hr />
+<h2 id="instance-groups">Instance Groups</h2>
+<p><img alt="Instance Groups" src="img/handbook/instance_groups.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — logical pools of instances. Click a group to manage members and policy.</li>
+</ol>
+<p>Logical pools of instances. Templates can be pinned to a group (e.g., <code>gpu-pool</code>, <code>eu-west-pool</code>).</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Instance Groups</strong> → <strong>Add</strong>.</li>
+<li>Fill in <strong>Name</strong> and <strong>Policy</strong> (min instances, max idle).</li>
+<li><strong>Save</strong>.</li>
+<li>Open the group → <strong>Instances</strong> tab → attach instances.</li>
+<li>Open a Job Template → set its <strong>Instance Group</strong> to this one.</li>
+</ol>
+<p><strong>Example</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td><code>eu-west-pool</code></td>
+</tr>
+<tr>
+<td>Policy instances minimum</td>
+<td>2</td>
+</tr>
+<tr>
+<td>Members</td>
+<td><code>worker-eu-01</code>, <code>worker-eu-02</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="execution-environments">Execution Environments</h2>
+<p><img alt="Execution Environments" src="img/handbook/execution_environments.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — container images that hold the runtime for jobs. Click any row to edit pull policy or registry credential.</li>
+</ol>
+<p>Container images that hold the runtime (Python, collections, binaries) used to run jobs.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Execution Env</strong> → <strong>Add</strong>.</li>
+<li>Fill in:</li>
+<li><strong>Name</strong></li>
+<li><strong>Image</strong> (<code>registry/repo:tag</code>)</li>
+<li><strong>Pull Policy</strong> (<code>always</code> / <code>missing</code> / <code>never</code>)</li>
+<li><strong>Registry credential</strong></li>
+<li><strong>Save</strong>.</li>
+<li>Reference it from a Job Template’s <strong>Execution Environment</strong> field.</li>
+</ol>
+<p><strong>Example</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ee-aws-2026.04</span>
+<span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">registry.example.com/forge/ee-aws:2026.04</span>
+<span class="nt">pull</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">always</span>
+<span class="nt">credential</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">harbor-pull</span>
+</code></pre></div>
+
+<hr />
+<h2 id="notifications">Notifications</h2>
+<p><img alt="Notifications" src="img/handbook/notifications.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Create</strong> — opens the form below.</li>
+</ol>
+<p>Channels Forge can send messages to (email, Slack, PagerDuty, MS Teams, webhooks).</p>
+<p><strong>Create Notification Template</strong></p>
+<p><img alt="Create Notification Template" src="img/handbook/notifications_new.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Name</strong> — short id, e.g. <code>slack-secops</code>.</li>
+<li><strong>Notification Type</strong> — Email / Slack / PagerDuty / Webhook / MS Teams / etc.</li>
+<li><strong>Create</strong> — submits the form (next step asks for type-specific fields like Slack token + channel).</li>
+</ol>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Notifications</strong> → <strong>Add</strong>.</li>
+<li>Pick <strong>Type</strong> (Email / Slack / PagerDuty / Webhook / …).</li>
+<li>Fill in the type-specific fields.</li>
+<li>Click <strong>Test</strong> → <strong>Save</strong>.</li>
+<li>Attach the notification to a Job Template, Project, or Workflow on its <strong>Notifications</strong> tab.</li>
+</ol>
+<p><strong>Example — Slack</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td><code>slack-secops</code></td>
+</tr>
+<tr>
+<td>Type</td>
+<td>Slack</td>
+</tr>
+<tr>
+<td>Token</td>
+<td><code>xoxb-…</code></td>
+</tr>
+<tr>
+<td>Channel</td>
+<td><code>#secops-alerts</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="topology">Topology</h2>
+<p><img alt="Topology" src="img/handbook/topology.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — visual mesh map of the cluster. Drag to pan, scroll to zoom, click nodes / links for detail.</li>
+</ol>
+<p>Visual map of the cluster: control nodes, hop nodes, execution nodes, mesh links.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Topology</strong>.</li>
+<li>Drag to pan, scroll to zoom.</li>
+<li>Click any node for details (capacity, version, peers).</li>
+<li>Click any link to see latency and link status.</li>
+</ol>
+<p><strong>Example</strong></p>
+<blockquote>
+<p>Suspect a mesh issue → open Topology → spot a red link between <code>hop-eu</code> and <code>worker-eu-02</code> → click it → read the error.</p>
+</blockquote>
+<hr />
+<h2 id="settings">Settings</h2>
+<p><img alt="Settings" src="img/handbook/settings.png" /></p>
+<p><strong>What each marker means:</strong></p>
+<ol>
+<li><strong>Page heading</strong> — global platform configuration grouped by category (Authentication, System, Jobs, UI, Logging, License).</li>
+</ol>
+<p>Global platform configuration: auth, system, jobs, UI, logging, license.</p>
+<p><strong>Step by step</strong></p>
+<ol>
+<li>Click <strong>Settings</strong>.</li>
+<li>Pick a category (Authentication, System, Jobs, UI, Logging, License).</li>
+<li>Edit the field, click <strong>Save</strong>.</li>
+<li>Some changes (e.g., auth) require a service reload — banner will indicate.</li>
+</ol>
+<p><strong>Example — bump max concurrent jobs</strong></p>
+<blockquote>
+<p>Settings → Jobs → set <strong>Max Concurrent Jobs</strong> to <code>200</code> → Save.</p>
+</blockquote>
+<hr />
+<h1 id="appendix-common-workflows-end-to-end">Appendix — Common Workflows End-to-End</h1>
+<h3 id="a-provision-a-new-dev-vm-self-service-path">A) Provision a new dev VM (self-service path)</h3>
+<ol>
+<li><a href="#catalog-admin">Catalog Admin</a> — admin publishes the <em>New Dev VM</em> item.</li>
+<li>End user opens <a href="#service-portal">Service Portal</a> → submits the form.</li>
+<li>Item appears in <a href="#approvals">Approvals</a> → approver approves.</li>
+<li>Forge launches the <a href="#templates">Templates</a> job behind the item.</li>
+<li>End user watches it under <a href="#my-requests">My Requests</a> and <a href="#jobs">Jobs</a>.</li>
+</ol>
+<h3 id="b-catch-and-fix-configuration-drift">B) Catch and fix configuration drift</h3>
+<ol>
+<li>Take a <a href="#fact-snapshots">Fact Snapshot</a> of the production inventory.</li>
+<li>Define an <a href="#alert-rules">Alert Rule</a>.</li>
+<li>Run <a href="#drift-detections">Drift Detections</a> on a schedule.</li>
+<li>Mismatches open <a href="#drift-alerts">Drift Alerts</a>.</li>
+<li>Fix via a <a href="#templates">Templates</a> remediation job.</li>
+</ol>
+<h3 id="c-deploy-a-new-release">C) Deploy a new release</h3>
+<ol>
+<li>Update playbooks in the Git repo behind your <a href="#projects">Project</a>.</li>
+<li>Click <strong>Sync</strong> on the project.</li>
+<li>Open the <a href="#templates">Templates</a> deploy job → <strong>Launch</strong> with the new version variable.</li>
+<li>Watch in <a href="#jobs">Jobs</a>.</li>
+<li>Confirm in <a href="#analytics">Analytics</a> → success rate stays green.</li>
+</ol>
+<hr />
+<p><em>End of handbook.</em></p>
+  </main>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="/">Home</a>
+    <a href="./">Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>
