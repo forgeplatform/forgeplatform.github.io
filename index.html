@@ -9,349 +9,182 @@
   <meta name="author" content="Krstan Vjestica">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://forgeplatform.github.io/">
-
-  <!-- Open Graph -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="Forge Platform — Open-Source Infrastructure Automation">
-  <meta property="og:description" content="The infrastructure automation platform with features that AWX and Ansible Tower don't have. Event-driven automation, drift detection, policy-as-code, and more.">
+  <meta property="og:description" content="The infrastructure automation platform with features that AWX and Ansible Tower don't have.">
   <meta property="og:url" content="https://forgeplatform.github.io/">
   <meta property="og:site_name" content="Forge Platform">
   <meta property="og:image" content="https://forgeplatform.github.io/assets/img/screenshots/dashboard.png">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Forge Platform — Open-Source Infrastructure Automation">
   <meta name="twitter:description" content="The infrastructure automation platform with features that AWX and Ansible Tower don't have.">
   <meta name="twitter:image" content="https://forgeplatform.github.io/assets/img/screenshots/dashboard.png">
-
-  <!-- Structured Data -->
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "Forge Platform",
-    "applicationCategory": "DeveloperApplication",
-    "operatingSystem": "Linux",
-    "description": "Open-source infrastructure automation platform with event-driven automation, drift detection, policy-as-code, self-service portal, multi-tenancy, and AI assistant.",
-    "url": "https://forgeplatform.github.io/",
-    "author": {
-      "@type": "Person",
-      "name": "Krstan Vjestica"
-    },
-    "license": "https://www.apache.org/licenses/LICENSE-2.0",
-    "offers": {
-      "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD"
-    }
-  }
+  {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Forge Platform","applicationCategory":"DeveloperApplication","operatingSystem":"Linux","description":"Open-source infrastructure automation platform with event-driven automation, drift detection, policy-as-code, self-service portal, multi-tenancy, and AI assistant.","url":"https://forgeplatform.github.io/","author":{"@type":"Person","name":"Krstan Vjestica"},"license":"https://www.apache.org/licenses/LICENSE-2.0","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
   </script>
-
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
 
-<!-- Navigation -->
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-logo">
-      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="32" height="32" rx="8" fill="#6c5ce7"/>
-        <path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/>
-      </svg>
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#7c6cf0"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
       Forge
     </a>
     <ul class="nav-links">
       <li><a href="#features">Features</a></li>
-      <li><a href="#preview">Preview</a></li>
-      <li><a href="#architecture">Architecture</a></li>
       <li><a href="#comparison">Comparison</a></li>
-      <li><a href="#quickstart">Quick Start</a></li>
+      <li><a href="#quickstart">Get Started</a></li>
       <li><a href="docs/">Docs</a></li>
     </ul>
-    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
-    <button class="nav-toggle" aria-label="Toggle navigation">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M3 12h18M3 6h18M3 18h18"/>
-      </svg>
+    <a href="https://github.com/forgeplatform" class="nav-cta">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="margin-right:4px"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub
+    </a>
+    <button class="nav-toggle" aria-label="Menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
     </button>
   </div>
 </nav>
 
-<!-- Hero -->
+<!-- ─── Hero ─────────────────────────────────────────── -->
 <section class="hero">
   <div class="hero-content">
-    <div class="hero-badge">
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="4"/></svg>
-      v2026.04.0 — Latest Release
-    </div>
+    <div class="hero-badge">v2026.04.0 &mdash; Latest Release</div>
     <h1>Infrastructure Automation<br><span>Beyond AWX</span></h1>
-    <p>Open-source platform for Ansible automation with event-driven workflows, drift detection, policy-as-code, self-service portal, and AI assistant. Deploy with Docker Compose in minutes.</p>
+    <p>Open-source Ansible platform with event-driven automation, drift detection, policy-as-code, and a self-service portal. Deploy with Docker Compose.</p>
     <div class="hero-buttons">
-      <a href="#quickstart" class="btn btn-primary">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-        Quick Start
-      </a>
-      <a href="docs/" class="btn btn-outline">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Documentation
-      </a>
-      <a href="https://github.com/forgeplatform" class="btn btn-outline">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/></svg>
-        GitHub
-      </a>
+      <a href="#quickstart" class="btn btn-primary">Get Started</a>
+      <a href="docs/" class="btn btn-outline">Documentation</a>
     </div>
+  </div>
+  <div class="hero-screenshot">
+    <img src="assets/img/screenshots/dashboard.png" alt="Forge Platform Dashboard" width="960" height="540">
   </div>
 </section>
 
-<!-- Stats -->
-<section style="padding-top: 0;">
+<!-- ─── Stats ────────────────────────────────────────── -->
+<section style="padding: 2rem 2rem 4rem;">
   <div class="container">
     <div class="stats-row">
-      <div class="stat-item">
-        <div class="stat-number">15+</div>
-        <div class="stat-label">Unique Features Beyond AWX</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">2,200+</div>
-        <div class="stat-label">Tests Passing</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">5 min</div>
-        <div class="stat-label">Docker Compose Deploy</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-number">100%</div>
-        <div class="stat-label">Open Source</div>
-      </div>
+      <div class="stat-item"><div class="stat-number">15+</div><div class="stat-label">Features Beyond AWX</div></div>
+      <div class="stat-item"><div class="stat-number">2,200+</div><div class="stat-label">Tests Passing</div></div>
+      <div class="stat-item"><div class="stat-number">5 min</div><div class="stat-label">Time to Deploy</div></div>
+      <div class="stat-item"><div class="stat-number">100%</div><div class="stat-label">Open Source</div></div>
     </div>
   </div>
 </section>
 
-<!-- Features -->
-<section id="features">
+<!-- ─── Features ─────────────────────────────────────── -->
+<section id="features" class="section-alt">
   <div class="container">
     <div class="section-header">
       <div class="section-label">Features</div>
       <h2>Everything AWX Should Have Been</h2>
-      <p>Built on top of AWX 24.6.1 with enterprise-grade features that the community has been asking for.</p>
+      <p>Enterprise-grade capabilities the Ansible community has been asking for.</p>
     </div>
     <div class="features-grid">
+
       <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-        </div>
+        <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
         <h3>Event-Driven Automation</h3>
-        <p>HMAC-verified webhook rules with Jinja2 conditions that automatically trigger jobs, notifications, or custom actions when events occur.</p>
+        <p>HMAC-verified webhook rules with Jinja2 conditions that trigger jobs or notifications automatically.</p>
       </div>
+
       <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </div>
+        <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
         <h3>Drift Detection</h3>
-        <p>Automatic configuration drift detection with severity classification, alert rules, and CSV compliance reports. Know when infrastructure deviates.</p>
+        <p>Automatic configuration drift detection with severity classification, alert rules, and CSV compliance export.</p>
       </div>
+
       <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        </div>
-        <h3>Policy-as-Code (OPA)</h3>
-        <p>Open Policy Agent integration with Rego rules evaluated before every launch. Deny or warn based on your organization's policies.</p>
+        <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+        <h3>Policy-as-Code</h3>
+        <p>OPA / Rego rules evaluated before every launch. Block non-compliant automations at the gate.</p>
       </div>
+
       <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
-        </div>
+        <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg></div>
         <h3>Self-Service Portal</h3>
-        <p>Curated automation catalog with approval workflows. End users browse and request automations without needing template access.</p>
+        <p>Curated automation catalog with approval workflows. Users request automations without template access.</p>
       </div>
+
       <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
-        </div>
+        <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg></div>
         <h3>Multi-Tenancy</h3>
-        <p>Per-organization quotas, custom branding (logo, colors, domain), and usage tracking. Isolate teams with tenant-aware access control.</p>
+        <p>Per-organization quotas, custom branding, usage tracking, and tenant-aware access control.</p>
       </div>
+
       <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-        </div>
+        <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
         <h3>AI Assistant</h3>
-        <p>Privacy-first AI chat powered by local Ollama LLM with RAG. Get contextual help, error analysis, and documentation search without sending data to the cloud.</p>
+        <p>Privacy-first AI chat with local Ollama LLM and RAG. Contextual help without sending data to the cloud.</p>
       </div>
+
       <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-        </div>
-        <h3>WebAuthn / Passkeys</h3>
-        <p>FIDO2 passwordless authentication with per-organization MFA enforcement. OIDC SSO support with Keycloak, Azure AD, Okta.</p>
+        <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg></div>
+        <h3>WebAuthn &amp; OIDC</h3>
+        <p>FIDO2 passkeys, passwordless login, per-org MFA enforcement. SSO with Keycloak, Azure AD, Okta.</p>
       </div>
+
       <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
-        </div>
+        <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></div>
         <h3>IaC Scanning</h3>
-        <p>Pre-launch security scanning with ansible-lint, checkov, and pip-audit. Block risky automations before they run with configurable severity thresholds.</p>
+        <p>Pre-launch security scanning with ansible-lint, checkov, and pip-audit. Configurable severity thresholds.</p>
       </div>
+
       <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        </div>
-        <h3>OpenTelemetry Observability</h3>
-        <p>Built-in distributed tracing and metrics with OpenTelemetry. Zero vendor lock-in, zero overhead when disabled. Works with Jaeger, Grafana, Datadog.</p>
+        <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+        <h3>OpenTelemetry</h3>
+        <p>Distributed tracing and metrics built in. Zero vendor lock-in, zero overhead when disabled.</p>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        </div>
-        <h3>Dynamic Surveys</h3>
-        <p>Survey choices resolved at runtime from database queries, external APIs, or Jinja2 templates. No more hardcoded dropdown values.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>
-        </div>
-        <h3>Immutable Audit Trail</h3>
-        <p>Tamper-proof security audit log with CSV and SIEM export. Track credential access, authentication events, and permission changes.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-        </div>
-        <h3>Modern React UI</h3>
-        <p>Complete rewrite with React 18, TypeScript, Tailwind CSS, and TanStack Query. Real-time WebSocket updates, dark mode, guided setup wizards.</p>
-      </div>
+
     </div>
   </div>
 </section>
 
-<!-- Platform Preview -->
-<section id="preview">
-  <div class="container">
-    <div class="section-header">
-      <div class="section-label">Platform Preview</div>
-      <h2>Built for Day-to-Day Operations</h2>
-      <p>A clean, modern interface that gets out of your way. Browse all screenshots in the <a href="docs/user-handbook.html">User Handbook</a>.</p>
-    </div>
-    <div class="hero-image">
-      <img src="assets/img/screenshots/dashboard.png" alt="Forge Platform Dashboard — resource overview, job activity chart, and getting started wizard" loading="lazy" width="1200" height="675">
-    </div>
-  </div>
-</section>
-
-<!-- Architecture -->
+<!-- ─── Architecture ─────────────────────────────────── -->
 <section id="architecture">
   <div class="container">
     <div class="section-header">
       <div class="section-label">Architecture</div>
       <h2>Production-Ready from Day One</h2>
-      <p>Docker Compose deployment with separate web, task, and frontend containers. Scale horizontally with Receptor mesh.</p>
+      <p>Docker Compose deployment with separate web, task, and frontend containers. Scale with Receptor mesh.</p>
     </div>
-    <div class="architecture-img">
+    <div class="arch-container">
       <img src="assets/img/architecture.png" alt="Forge Platform Architecture Diagram" loading="lazy">
     </div>
   </div>
 </section>
 
-<!-- Tech Stack -->
-<section>
-  <div class="container">
-    <div class="section-header">
-      <div class="section-label">Tech Stack</div>
-      <h2>Built on Proven Technologies</h2>
-    </div>
-    <div class="tech-grid">
-      <div class="tech-item">
-        <div class="tech-name">Python 3.12</div>
-        <div class="tech-desc">Backend runtime</div>
-      </div>
-      <div class="tech-item">
-        <div class="tech-name">Django 4.2</div>
-        <div class="tech-desc">Web framework</div>
-      </div>
-      <div class="tech-item">
-        <div class="tech-name">React 18</div>
-        <div class="tech-desc">Frontend UI</div>
-      </div>
-      <div class="tech-item">
-        <div class="tech-name">TypeScript</div>
-        <div class="tech-desc">Type-safe frontend</div>
-      </div>
-      <div class="tech-item">
-        <div class="tech-name">PostgreSQL 15</div>
-        <div class="tech-desc">Database</div>
-      </div>
-      <div class="tech-item">
-        <div class="tech-name">Redis 7</div>
-        <div class="tech-desc">Cache &amp; broker</div>
-      </div>
-      <div class="tech-item">
-        <div class="tech-name">Celery 5</div>
-        <div class="tech-desc">Task engine</div>
-      </div>
-      <div class="tech-item">
-        <div class="tech-name">Receptor</div>
-        <div class="tech-desc">Mesh networking</div>
-      </div>
-      <div class="tech-item">
-        <div class="tech-name">Docker</div>
-        <div class="tech-desc">Containerization</div>
-      </div>
-      <div class="tech-item">
-        <div class="tech-name">Nginx</div>
-        <div class="tech-desc">TLS &amp; routing</div>
-      </div>
-      <div class="tech-item">
-        <div class="tech-name">OpenTelemetry</div>
-        <div class="tech-desc">Observability</div>
-      </div>
-      <div class="tech-item">
-        <div class="tech-name">OPA / Rego</div>
-        <div class="tech-desc">Policy engine</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Comparison -->
-<section id="comparison">
+<!-- ─── Comparison ───────────────────────────────────── -->
+<section id="comparison" class="section-alt">
   <div class="container">
     <div class="section-header">
       <div class="section-label">Comparison</div>
       <h2>How Forge Compares</h2>
-      <p>Features that set Forge apart from AWX, Ansible Automation Platform, and alternatives.</p>
     </div>
-    <div style="overflow-x: auto;">
+    <div class="table-wrap" style="overflow-x: auto;">
       <table class="comparison-table">
         <thead>
-          <tr>
-            <th>Feature</th>
-            <th>Forge</th>
-            <th>AWX</th>
-            <th>AAP 2.5+</th>
-            <th>Ascender</th>
-            <th>Semaphore</th>
-          </tr>
+          <tr><th>Feature</th><th>Forge</th><th>AWX</th><th>AAP 2.5+</th><th>Ascender</th><th>Semaphore</th></tr>
         </thead>
         <tbody>
           <tr><td>Docker Compose deploy</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td><td class="check">Yes</td><td class="check">Yes</td></tr>
-          <tr><td>Dynamic surveys</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td></tr>
           <tr><td>Event-driven automation</td><td class="check">Yes</td><td class="cross">No</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td></tr>
           <tr><td>Drift detection</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td><td class="check">Yes</td><td class="cross">No</td></tr>
-          <tr><td>AI assistant</td><td class="check">Yes</td><td class="cross">No</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td></tr>
-          <tr><td>Self-service portal</td><td class="check">Yes</td><td class="cross">No</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td></tr>
           <tr><td>Policy-as-Code (OPA)</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">Planned</td><td class="cross">No</td><td class="cross">No</td></tr>
-          <tr><td>OIDC + WebAuthn</td><td class="check">Yes</td><td class="cross">Partial</td><td class="check">Yes</td><td class="cross">Partial</td><td class="cross">No</td></tr>
+          <tr><td>Self-service portal</td><td class="check">Yes</td><td class="cross">No</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td></tr>
           <tr><td>Multi-tenancy</td><td class="check">Yes</td><td class="cross">No</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td></tr>
+          <tr><td>AI assistant</td><td class="check">Yes</td><td class="cross">No</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td></tr>
+          <tr><td>WebAuthn / passkeys</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td></tr>
           <tr><td>IaC scanning</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td></tr>
           <tr><td>OpenTelemetry</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td></tr>
+          <tr><td>Dynamic surveys</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td><td class="cross">No</td></tr>
           <tr><td>Modern UI (React 18)</td><td class="check">Yes</td><td class="cross">Legacy</td><td class="check">Yes</td><td class="cross">Legacy</td><td class="check">Yes</td></tr>
           <tr><td>Open source</td><td class="check">Yes</td><td class="check">Yes</td><td class="cross">No</td><td class="cross">Partial</td><td class="check">Yes</td></tr>
         </tbody>
@@ -360,45 +193,36 @@
   </div>
 </section>
 
-<!-- Quick Start -->
+<!-- ─── Quick Start ──────────────────────────────────── -->
 <section id="quickstart">
   <div class="container">
     <div class="section-header">
-      <div class="section-label">Quick Start</div>
-      <h2>Up and Running in 5 Minutes</h2>
-      <p>One command to deploy the entire platform with Docker Compose.</p>
+      <div class="section-label">Get Started</div>
+      <h2>Deploy in 5 Minutes</h2>
     </div>
     <div class="quickstart">
-      <pre><span class="comment"># Clone the deployment repository</span>
+      <pre><span class="comment"># Clone and configure</span>
 <span class="cmd">git clone https://github.com/forgeplatform/forge-deploy.git</span>
 <span class="cmd">cd forge-deploy</span>
-
-<span class="comment"># Configure environment</span>
-<span class="cmd">cp .env.example .env</span>
-<span class="cmd">nano .env</span>   <span class="comment"># Set POSTGRES_PASSWORD, FORGE_SECRET_KEY, etc.</span>
+<span class="cmd">cp .env.example .env && nano .env</span>
 
 <span class="comment"># Start the platform</span>
 <span class="cmd">docker compose up -d</span>
 
-<span class="comment"># Wait for initialization (~2 minutes on first run)</span>
-<span class="cmd">docker compose logs -f forge-init</span>
-
 <span class="comment"># Open in browser</span>
 <span class="cmd">open https://localhost</span></pre>
     </div>
-    <p style="text-align: center; margin-top: 1.5rem; color: var(--text-muted);">
-      See the <a href="docs/deployment.html">Deployment Guide</a> for production setup with TLS, backups, and scaling.
+    <p style="text-align:center; margin-top:1.25rem; color:var(--text-muted); font-size:.875rem;">
+      See the <a href="docs/deployment.html">Deployment Guide</a> for TLS, backups, and scaling.
     </p>
   </div>
 </section>
 
-<!-- CTA -->
-<section style="text-align: center;">
-  <div class="container">
-    <h2 style="font-size: 2rem; color: var(--text-heading); margin-bottom: 1rem;">Ready to Automate?</h2>
-    <p style="color: var(--text-muted); font-size: 1.1rem; margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto;">
-      Forge is free, open-source, and designed for teams that need more than AWX can offer.
-    </p>
+<!-- ─── CTA ──────────────────────────────────────────── -->
+<section class="cta-section">
+  <div class="container" style="position:relative;">
+    <h2>Ready to Automate?</h2>
+    <p>Free, open-source, and built for teams that need more than AWX.</p>
     <div class="hero-buttons">
       <a href="https://github.com/forgeplatform" class="btn btn-primary">View on GitHub</a>
       <a href="docs/" class="btn btn-outline">Read the Docs</a>
@@ -406,15 +230,13 @@
   </div>
 </section>
 
-<!-- Footer -->
 <footer class="footer">
   <div class="footer-links">
     <a href="https://github.com/forgeplatform">GitHub</a>
     <a href="docs/">Documentation</a>
     <a href="https://github.com/forgeplatform/forge-deploy/issues">Issues</a>
   </div>
-  <p>Forge Platform &mdash; Apache License 2.0</p>
-  <p style="margin-top: .5rem;">Created by Krstan Vjestica</p>
+  <p>Forge Platform &mdash; Apache License 2.0 &mdash; Created by Krstan Vjestica</p>
 </footer>
 
 <script src="assets/js/main.js"></script>
