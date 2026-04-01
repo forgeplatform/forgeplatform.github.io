@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Developer Documentation — Forge Platform</title>
+  <meta name="description" content="Developer documentation for the Forge infrastructure automation platform. Backend architecture, frontend, API reference, database schema, testing, and CI/CD.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://forgeplatform.github.io/dev/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo">
+      <svg viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="8" fill="#7c6cf0"/><path d="M8 10h16v2H8zm0 5h12v2H8zm0 5h14v2H8z" fill="#fff"/></svg>
+      Forge
+    </a>
+    <ul class="nav-links">
+      <li><a href="../docs/index.html">User Docs</a></li>
+      <li><a href="index.html" style="color: var(--primary);">Dev Docs</a></li>
+    </ul>
+    <a href="https://github.com/forgeplatform" class="nav-cta">GitHub</a>
+    <button class="nav-toggle" aria-label="Menu">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+    </button>
+  </div>
+</nav>
+
+<div class="docs-layout" style="padding: 2rem;">
+  <aside class="docs-sidebar">
+    <h4>Architecture</h4>
+    <a href="backend.html">Backend (Django)</a>
+    <a href="frontend.html">Frontend (React)</a>
+    <a href="task-engine.html">Task Engine</a>
+    <a href="auth-rbac.html">Authentication &amp; RBAC</a>
+    <h4>Reference</h4>
+    <a href="database.html">Database Schema</a>
+    <a href="api-reference.html">API Reference</a>
+    <a href="dev-configuration.html">Configuration</a>
+    <h4>Workflow</h4>
+    <a href="testing.html">Testing Guide</a>
+    <a href="ci-cd.html">CI/CD Pipeline</a>
+    <a href="contributing.html">Contributing</a>
+    <h4>&nbsp;</h4>
+    <a href="../docs/index.html">User &amp; Admin Docs</a>
+    <a href="../index.html">Home</a>
+  </aside>
+
+  <main class="docs-content">
+    <h1>Developer Documentation</h1>
+    <p>Technical documentation for developers contributing to or extending the Forge platform.</p>
+    <p>For deployment, operations, and feature guides, see the <a href="../docs/index.html">User &amp; Admin Docs</a>.</p>
+
+    <h2>Architecture</h2>
+    <table>
+      <thead><tr><th>Document</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><a href="backend.html">Backend (Django)</a></td><td>App structure, models, API views, serializers, signals, management commands</td></tr>
+        <tr><td><a href="frontend.html">Frontend (React)</a></td><td>React 18 SPA, TypeScript, Vite, TanStack Query, Zustand, routing, components</td></tr>
+        <tr><td><a href="task-engine.html">Task Engine</a></td><td>Job lifecycle, dispatcher, callback receiver, Receptor mesh, capacity</td></tr>
+        <tr><td><a href="auth-rbac.html">Authentication &amp; RBAC</a></td><td>Auth methods (session, OAuth2, LDAP, SAML), role hierarchy, permissions</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Reference</h2>
+    <table>
+      <thead><tr><th>Document</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><a href="database.html">Database Schema</a></td><td>ER diagram, all table descriptions, diagnostic queries, PostgreSQL tuning</td></tr>
+        <tr><td><a href="api-reference.html">API Reference</a></td><td>Complete REST API endpoint reference for every resource</td></tr>
+        <tr><td><a href="dev-configuration.html">Configuration</a></td><td>All env vars, Django settings, database-backed settings, performance tuning</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Workflow</h2>
+    <table>
+      <thead><tr><th>Document</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><a href="testing.html">Testing Guide</a></td><td>Test suite layout, running unit/functional tests, coverage, standalone tests</td></tr>
+        <tr><td><a href="ci-cd.html">CI/CD Pipeline</a></td><td>Jenkins pipeline stages, CalVer versioning, release process</td></tr>
+        <tr><td><a href="contributing.html">Contributing Guide</a></td><td>Git workflow, commit conventions, coding standards, PR checklist</td></tr>
+      </tbody>
+    </table>
+  </main>
+</div>
+
+<footer class="footer">
+  <div class="footer-links">
+    <a href="../index.html">Home</a>
+    <a href="../docs/index.html">User Docs</a>
+    <a href="https://github.com/forgeplatform">GitHub</a>
+  </div>
+  <p>Forge Platform — Apache License 2.0</p>
+</footer>
+<script src="../assets/js/main.js"></script>
+</body>
+</html>
