@@ -264,6 +264,23 @@ forge-web-...                     1/1     Running     0          3m</code></pre>
 
 <hr />
 
+<h2 id="install-assistant">Optional: AI Assistant</h2>
+<p>Chart <strong>0.3.0</strong> introduces an optional <code>forge-assistant</code> deployment that wraps the all-in-one image (Ollama + ChromaDB + RAG API in one container). It is disabled by default — enable it on a fresh install or on an upgrade:</p>
+<pre><code>helm upgrade forge . -n forge \
+    --reuse-values \
+    --set assistant.enabled=true</code></pre>
+<p>The chart provisions a <code>PersistentVolumeClaim</code> (<code>forge-assistant-data</code>, default <strong>20 Gi</strong>) so the LLM model cache and Chroma vector store survive pod restarts. On first boot the entrypoint pulls the configured model (<code>gemma3:1b</code> by default, ≈800 MB) and the embedding model (<code>nomic-embed-text</code>), then indexes the bundled documentation — allow ~5 minutes before the pod is <code>Ready</code>. The <code>startupProbe</code> is sized for this (<code>failureThreshold: 30</code> at <code>periodSeconds: 10</code>) so the liveness probe will not kill the pod mid-bootstrap.</p>
+<p>Key values you may want to override:</p>
+<table>
+<tr><th>Value</th><th>Default</th><th>Notes</th></tr>
+<tr><td><code>assistant.model</code></td><td><code>gemma3:1b</code></td><td>Switch to <code>llama3.1:8b</code> or <code>mistral:7b</code> for higher answer quality at the cost of memory and latency.</td></tr>
+<tr><td><code>assistant.storage.size</code></td><td><code>20Gi</code></td><td>Bump to 30 Gi+ if you change models or grow the indexed corpus.</td></tr>
+<tr><td><code>assistant.resources.limits.memory</code></td><td><code>4Gi</code></td><td>gemma3:1b inference peaks ~1.5 Gi; larger models need 8 Gi+.</td></tr>
+</table>
+<p>The Service is reachable cluster-internally at <code>forge-assistant.forge.svc.cluster.local:8100</code>. Ingress routing is intentionally not wired up by this release — expose it with a follow-up middleware (Traefik <code>stripPrefix</code> on <code>/assistant</code>) once you decide on a URL contract.</p>
+
+<hr />
+
 <h2 id="install-operator">Install the Operator</h2>
 <p>The operator is shipped separately because not everyone wants declarative-via-CRD management — some teams prefer the UI. Install only after Forge core is healthy (the operator needs to authenticate to it on startup).</p>
 
